@@ -7,3 +7,4 @@ Optionally uses [recasepunc](https://github.com/benob/recasepunc) to add punctua
 
 Can synchronize the detected voice with an OBS text source using [obsws-python](https://pypi.org/project/obsws-python/).
 
+On the first run it generates a config.json file that needs to be filled in before use.
