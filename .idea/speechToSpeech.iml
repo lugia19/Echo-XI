@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/env" />
+      <excludeFolder url="file://$MODULE_DIR$/env310" />
+      <excludeFolder url="file://$MODULE_DIR$/env36" />
+      <excludeFolder url="file://$MODULE_DIR$/env38" />
+      <excludeFolder url="file://$MODULE_DIR$/env39" />
+    </content>
+    <orderEntry type="jdk" jdkName="Python 3.9 (speechToSpeech)" jdkType="Python SDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
