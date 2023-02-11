@@ -34,17 +34,8 @@ def main():
         predictor = CasePuncPredictor(configData["repunc_model_path"], lang="en", flavor="bert-base-uncased")
 
     if subtitleEnable:
-        userInput = ""
-        if "obsPassword" in configData:
-            cl = obs.ReqClient(host="localhost", port=4455, password=configData["obsPassword"])
-        else:
-            print("Are you using a password for websocket?")
-            while len(userInput) == 0 or (userInput[0].lower() != "y" and userInput[0].lower() != "n"):
-                userInput = input("y/n?")
-            if userInput[0].lower() == "y":
-                cl = obs.ReqClient(host="localhost",port=4455,password=input("Please input your password."))
-            else:
-                cl = obs.ReqClient(host="localhost", port=4455, password="")
+        obsPort = configData["obs_port"]
+        cl = obs.ReqClient(host="localhost", port=obsPort, password=configData["obs_password"])
         currentScene = cl.get_current_program_scene().current_program_scene_name
         print(currentScene)
         itemList = cl.get_scene_item_list(currentScene).scene_items
@@ -181,7 +172,9 @@ if __name__ == '__main__':
             "api_key": "API_KEY",
             "vosk_model_path": "VOSK_MODEL_PATH",
             "voice_ID": "VOICE_ID",
-            "repunc_model_path": "REPUNC_MODEL_PATH_(OPTIONAL)"
+            "repunc_model_path": "REPUNC_MODEL_PATH_(OPTIONAL)",
+            "obs_password": "",
+            "obs_port": "4455"
         }
         json.dump(configData, open("config.json", "w"), indent=4)
         print("Please fill in the settings in config.json, remebering to double escape the backslashes in paths!")
