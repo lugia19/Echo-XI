@@ -44,7 +44,7 @@ default_flavors = {
 }
 
 
-class Config(argparse.Namespace):
+class ConfigClass(argparse.Namespace):
     def __init__(self, **kwargs):
         super().__init__()
         for key, value in default_config.__dict__.items():
@@ -257,7 +257,7 @@ def run_eval(config, test_x_fn, test_y_fn, checkpoint_path):
 
     loaded = torch.load(checkpoint_path, map_location=config.device)
     if 'config' in loaded:
-        config = Config(**loaded['config'])
+        config = ConfigClass(**loaded['config'])
         init(config)
 
     model = Model(config.flavor, config.device)
@@ -281,9 +281,9 @@ class CasePuncPredictor:
                  device=default_config.device):
         loaded = torch.load(checkpoint_path, map_location=device if torch.cuda.is_available() else 'cpu')
         if 'config' in loaded:
-            self.config = Config(**loaded['config'])
+            self.config = ConfigClass(**loaded['config'])
         else:
-            self.config = Config(lang=lang, flavor=flavor, device=device)
+            self.config = ConfigClass(lang=lang, flavor=flavor, device=device)
         init(self.config)
         if flavor is None:
             flavor = self.config.flavor
@@ -315,10 +315,10 @@ class CasePuncPredictor:
             y_scores1, y_scores2 = self.model(x)
             y_pred1 = torch.max(y_scores1, 2)[1]
             y_pred2 = torch.max(y_scores2, 2)[1]
-            for i, id, token, punc_label, case_label in zip(range(len(instance)), ids, instance,
+            for i, tokenID, token, punc_label, case_label in zip(range(len(instance)), ids, instance,
                                                             y_pred1[0].tolist()[:len(instance)],
                                                             y_pred2[0].tolist()[:len(instance)]):
-                if id == self.config.cls_token_id or id == self.config.sep_token_id:
+                if tokenID == self.config.cls_token_id or tokenID == self.config.sep_token_id:
                     continue
                 if previous_label is not None and previous_label > 1:
                     if case_label in [case['LOWER'], case['OTHER']]:  # LOWER, OTHER
@@ -327,15 +327,16 @@ class CasePuncPredictor:
                     punc_label = punctuation['PERIOD']
                 yield (token, self.rev_case[case_label], self.rev_punc[punc_label])
                 previous_label = punc_label
-
-    def map_case_label(self, token, case_label):
+    @staticmethod
+    def map_case_label(token, case_label):
         if token.endswith('</w>'):
             token = token[:-4]
         if token.startswith('##'):
             token = token[2:]
         return recase(token, case[case_label])
 
-    def map_punc_label(self, token, punc_label):
+    @staticmethod
+    def map_punc_label(token, punc_label):
         if token.endswith('</w>'):
             token = token[:-4]
         if token.startswith('##'):
@@ -346,7 +347,7 @@ class CasePuncPredictor:
 def generate_predictions(config, checkpoint_path):
     loaded = torch.load(checkpoint_path, map_location=config.device if torch.cuda.is_available() else 'cpu')
     if 'config' in loaded:
-        config = Config(**loaded['config'])
+        config = ConfigClass(**loaded['config'])
         init(config)
 
     model = Model(config.flavor, config.device)
@@ -376,11 +377,11 @@ def generate_predictions(config, checkpoint_path):
             y_scores1, y_scores2 = model(x)
             y_pred1 = torch.max(y_scores1, 2)[1]
             y_pred2 = torch.max(y_scores2, 2)[1]
-            for id, token, punc_label, case_label in zip(ids, instance, y_pred1[0].tolist()[:len(instance)],
+            for tokenID, token, punc_label, case_label in zip(ids, instance, y_pred1[0].tolist()[:len(instance)],
                                                          y_pred2[0].tolist()[:len(instance)]):
                 if config.debug:
-                    print(id, token, punc_label, case_label, file=sys.stderr)
-                if id in (config.cls_token_id, config.sep_token_id):
+                    print(tokenID, token, punc_label, case_label, file=sys.stderr)
+                if tokenID in (config.cls_token_id, config.sep_token_id):
                     continue
                 if previous_label is not None and previous_label > 1:
                     if case_label in [case['LOWER'], case['OTHER']]:
@@ -440,10 +441,10 @@ def make_tensors(config, input_fn, output_x_fn, output_y_fn):
         offset = 0
         for n, line in enumerate(fp):
             word, case_label, punc_label = line.strip().split('\t')
-            id = config.tokenizer.convert_tokens_to_ids(word)
+            tokenID = config.tokenizer.convert_tokens_to_ids(word)
             if config.debug:
-                assert word.lower() == tokenizer.convert_ids_to_tokens(id)
-            X[offset] = id
+                assert word.lower() == tokenizer.convert_ids_to_tokens(tokenID)
+            X[offset] = tokenID
             Y[offset, 0] = punctuation[punc_label]
             Y[offset, 1] = case[case_label]
             offset += 1
@@ -468,7 +469,6 @@ mapped_punctuation = {
     '；': 'COMMA',
     '：': 'COMMA',
     '（': 'COMMA',
-    '(': 'COMMA',
     '）': 'COMMA',
     '［': 'COMMA',
     '］': 'COMMA',
@@ -479,7 +479,6 @@ mapped_punctuation = {
     '_': 'O',
     '。': 'PERIOD',
     '、': 'COMMA',  # enumeration comma
-    '、': 'COMMA',
     '…': 'PERIOD',
     '—': 'COMMA',
     '「': 'COMMA',
@@ -487,11 +486,9 @@ mapped_punctuation = {
     '．': 'PERIOD',
     '《': 'O',
     '》': 'O',
-    '，': 'COMMA',
     '“': 'O',
     '”': 'O',
     '"': 'O',
-    '-': 'O',
     '-': 'O',
     '〉': 'COMMA',
     '〈': 'COMMA',
@@ -500,7 +497,7 @@ mapped_punctuation = {
     '〕': 'COMMA',
 }
 
-
+num_tokens_output = 0
 def preprocess_text(config, max_token_count=-1):
     global num_tokens_output
     max_token_count = int(max_token_count)
@@ -510,9 +507,9 @@ def preprocess_text(config, max_token_count=-1):
         global num_tokens_output
         text = text.replace('\t', ' ')
         tokens = config.tokenizer.tokenize(text)
-        for i, token in enumerate(tokens):
+        for j, token in enumerate(tokens):
             case_label = label_for_case(token)
-            if i == len(tokens) - 1:
+            if j == len(tokens) - 1:
                 print(token.lower(), case_label, punctuation, sep='\t')
             else:
                 print(token.lower(), case_label, 'O', sep='\t')
@@ -749,6 +746,6 @@ if __name__ == '__main__':
     parser.add_argument("--period", help="validation period in updates", default=default_config.period, type=bool)
     parser.add_argument("--lr", help="learning rate", default=default_config.lr, type=bool)
     parser.add_argument("--dab-rate", help="drop at boundaries rate", default=default_config.dab_rate, type=bool)
-    config = Config(**parser.parse_args().__dict__)
+    configArg = ConfigClass(**parser.parse_args().__dict__)
 
-    main(config, config.action, config.action_args)
+    main(configArg, configArg.action, configArg.action_args)

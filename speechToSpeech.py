@@ -11,47 +11,11 @@ import requests
 from pydub import AudioSegment
 from vosk import Model, KaldiRecognizer
 
-# If you don't want the OBS integration, you can remove this import
 import obsws_python as obs
-# If you don't want the recasepunc functionality, you can remove this imports
-from recasepunc import CasePuncPredictor
-
-#Setup
-if not os.path.exists("config.json"):
-    configData:dict[str, str|int] = {
-        "api_key": "API_KEY",
-        "vosk_model_path": "VOSK_MODEL_PATH",
-        "voice_ID": "VOICE_ID",
-        "repunc_model_path":"REPUNC_MODEL_PATH_(OPTIONAL)"
-    }
-    json.dump(configData, open("config.json", "w"), indent=4)
-    print("Please fill in the settings in config.json!")
-    exit()
-
-try:
-    configData = json.load(open("config.json", "r"))
-except:
-    print("Invalid config! Did you remember to escape the backslashes?")
-    exit()
-
-modelPath = configData["vosk_model_path"]
-voiceID = configData["voice_ID"]
-api_key = configData["api_key"]
-
-ttsURL = "https://api.elevenlabs.io/v1/text-to-speech/" + configData["voice_ID"] + "/stream"
-ttsHeader = {
-    'accept': '*/*',
-    'Content-Type': 'application/json',
-    "xi-api-key": configData["api_key"],
-}
+#Important! The wordpiecetokenizer import ISN'T UNUSED! DON'T TOUCH IT!
+from recasepunc import CasePuncPredictor, WordpieceTokenizer
 
 def main():
-    try:
-        model = Model(modelPath)
-    except:
-        print("Could not open model. Did you remember to double escape the backslashes in the config?")
-        exit()
-
     print("Enable text output for OBS websocket?")
     userInput = ""
     while len(userInput) == 0 or (userInput[0].lower() != "y" and userInput[0].lower() != "n"):
@@ -66,7 +30,7 @@ def main():
     if recasePuncEnable:
         if configData["repunc_model_path"] == "REPUNC_MODEL_PATH_(OPTIONAL)":
             print("Please set the repunc_model_path in the config file!")
-            exit()
+            return
         predictor = CasePuncPredictor(configData["repunc_model_path"], lang="en", flavor="bert-base-uncased")
 
     if subtitleEnable:
@@ -96,7 +60,7 @@ def main():
                     break
         if textItem is None:
             input("No text item found or selected in current scene. Press enter to exit...")
-            exit()
+            return
 
     pyAudio = pyaudio.PyAudio()
     info = pyAudio.get_host_api_info_by_index(0)
@@ -119,7 +83,12 @@ def main():
             print("Not a valid number.")
     print("\nChosen input info: " + str(pyAudio.get_device_info_by_host_api_device_index(0, chosenInput))+"\n")
     inputRate = int(pyAudio.get_device_info_by_host_api_device_index(0, chosenInput)["defaultSampleRate"])
-    recognizer = KaldiRecognizer(model, inputRate)
+    try:
+        model = Model(modelPath)
+        recognizer = KaldiRecognizer(model, inputRate)
+    except:
+        print("Could not open model. Did you remember to double escape the backslashes in the config?")
+        return
 
     micStream = pyAudio.open(format=pyaudio.paInt16, channels=1, rate=inputRate, input=True, frames_per_buffer=8192, input_device_index=chosenInput)
 
@@ -145,8 +114,8 @@ def main():
 
     outputStream = pyAudio.open(format=pyAudio.get_format_from_width(configData["sampwidth"]), channels=configData["channels"], rate=configData["framerate"], output=True, output_device_index=chosenOutput)
 
-    print("\nNow listening for voice input...\n")
     while micStream.is_active():
+        print("\nListening for voice input...\n")
         data = micStream.read(4096, exception_on_overflow=False)
 
         if recognizer.AcceptWaveform(data):
@@ -155,6 +124,7 @@ def main():
                 print("Recognized text: " + recognizedText)
                 if recasePuncEnable:
                     print("Running recasepunc...")
+                    # noinspection PyUnboundLocalVariable
                     tokens = list(enumerate(predictor.tokenize(recognizedText)))
                     results = ""
                     for token, case_label, punc_label in predictor.predict(tokens, lambda x: x[1]):
@@ -182,6 +152,7 @@ def main():
                             wrappedText = wrappedText[0].upper() + wrappedText[1:] + "."
                         print("Wrapped text: " + wrappedText)
                         settings = {"text": wrappedText}
+                        # noinspection PyUnboundLocalVariable
                         cl.set_input_settings(textItem["sourceName"], settings, True)
                     print("Playing back audio...")
                     outputStream.write(wavTempFile.read())
@@ -204,4 +175,34 @@ def getWavBytesIOFromText(prompt:str) -> Optional[io.BytesIO]:
         return None
 
 if __name__ == '__main__':
+    # Setup
+    if not os.path.exists("config.json"):
+        configData: dict[str, str | int] = {
+            "api_key": "API_KEY",
+            "vosk_model_path": "VOSK_MODEL_PATH",
+            "voice_ID": "VOICE_ID",
+            "repunc_model_path": "REPUNC_MODEL_PATH_(OPTIONAL)"
+        }
+        json.dump(configData, open("config.json", "w"), indent=4)
+        print("Please fill in the settings in config.json!")
+        exit()
+
+    configData = {}
+    try:
+        configData = json.load(open("config.json", "r"))
+    except:
+        print("Invalid config! Did you remember to escape the backslashes?")
+        exit()
+
+    modelPath = configData["vosk_model_path"]
+    voiceID = configData["voice_ID"]
+    api_key = configData["api_key"]
+
+    ttsURL = "https://api.elevenlabs.io/v1/text-to-speech/" + configData["voice_ID"] + "/stream"
+    ttsHeader = {
+        'accept': '*/*',
+        'Content-Type': 'application/json',
+        "xi-api-key": configData["api_key"],
+    }
+
     main()
