@@ -113,9 +113,8 @@ def main():
         json.dump(configData, open("config.json", "w"),indent=4)
 
     outputStream = pyAudio.open(format=pyAudio.get_format_from_width(configData["sampwidth"]), channels=configData["channels"], rate=configData["framerate"], output=True, output_device_index=chosenOutput)
-
+    print("\nListening for voice input...\n")
     while micStream.is_active():
-        print("\nListening for voice input...\n")
         data = micStream.read(4096, exception_on_overflow=False)
 
         if recognizer.AcceptWaveform(data):
@@ -156,6 +155,7 @@ def main():
                         cl.set_input_settings(textItem["sourceName"], settings, True)
                     print("Playing back audio...")
                     outputStream.write(wavTempFile.read())
+                    print("\nListening for voice input...\n")
 
 
 
@@ -184,7 +184,7 @@ if __name__ == '__main__':
             "repunc_model_path": "REPUNC_MODEL_PATH_(OPTIONAL)"
         }
         json.dump(configData, open("config.json", "w"), indent=4)
-        print("Please fill in the settings in config.json!")
+        print("Please fill in the settings in config.json, remebering to double escape the backslashes in paths!")
         exit()
 
     configData = {}
