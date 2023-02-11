@@ -1,4 +1,4 @@
-# speechToSpeechElevenLabs
+# Speech to text to speech
 Allows speech2speech with elevenlabs' TTS.
 
 Optionally uses [recasepunc](https://github.com/benob/recasepunc) to add punctuation and casing to improve the AI output.
