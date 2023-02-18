@@ -7,7 +7,7 @@ import textwrap
 import wave
 from typing import Optional
 import pyaudio
-import requests
+from elevenlabslib import *
 from pydub import AudioSegment
 from vosk import Model, KaldiRecognizer
 
@@ -52,6 +52,10 @@ def main():
         if textItem is None:
             input("No text item found or selected in current scene. Press enter to exit...")
             return
+        settings = {"text": ""}
+        #Clean whatever text was there before
+        # noinspection PyUnboundLocalVariable
+        cl.set_input_settings(textItem["sourceName"], settings, True)
 
     pyAudio = pyaudio.PyAudio()
     info = pyAudio.get_host_api_info_by_index(0)
@@ -128,8 +132,7 @@ def main():
                     print("Recognized text after recasepunc:")
                     print(results.strip())
                     recognizedText = results
-
-                wavTempFile = getWavBytesIOFromText(recognizedText)
+                wavTempFile = io.BytesIO(convert_to_wav_bytes(ttsVoice.generate_audio_bytes(recognizedText)))
                 if wavTempFile is not None:
                     if subtitleEnable:
                         print("Setting OBS text...")
@@ -147,23 +150,15 @@ def main():
                     print("Playing back audio...")
                     outputStream.write(wavTempFile.read())
                     print("\nListening for voice input...\n")
+def convert_to_wav_bytes(mp3Bytes:bytes) -> bytes:
+    wavBytes = io.BytesIO()
+    sound = AudioSegment.from_file_using_temporary_files(io.BytesIO(mp3Bytes), format="mp3")
+    sound.export(wavBytes, format="wav")
+    wavBytes.seek(0)
+    return wavBytes.read()
 
 
 
-
-
-def getWavBytesIOFromText(prompt:str) -> Optional[io.BytesIO]:
-    payload = {"text":prompt}
-    response = requests.post(ttsURL, headers=ttsHeader, json=payload)
-    if response.status_code == 200:
-        print("Response received correctly.")
-        wavBytes = io.BytesIO()
-        sound = AudioSegment.from_file_using_temporary_files(io.BytesIO(response.content), format="mp3")
-        sound.export(wavBytes, format="wav")
-        wavBytes.seek(0)
-        return wavBytes
-    else:
-        return None
 
 if __name__ == '__main__':
     # Setup
@@ -171,7 +166,6 @@ if __name__ == '__main__':
         configData: dict[str, str | int] = {
             "api_key": "API_KEY",
             "vosk_model_path": "VOSK_MODEL_PATH",
-            "voice_ID": "VOICE_ID",
             "repunc_model_path": "REPUNC_MODEL_PATH_(OPTIONAL)",
             "obs_password": "",
             "obs_port": "4455"
@@ -188,14 +182,19 @@ if __name__ == '__main__':
         exit()
 
     modelPath = configData["vosk_model_path"]
-    voiceID = configData["voice_ID"]
-    api_key = configData["api_key"]
+    user = ElevenLabsUser(configData["api_key"])
 
-    ttsURL = "https://api.elevenlabs.io/v1/text-to-speech/" + configData["voice_ID"] + "/stream"
-    ttsHeader = {
-        'accept': '*/*',
-        'Content-Type': 'application/json',
-        "xi-api-key": configData["api_key"],
-    }
+    voiceList = user.get_available_voices()
+
+    print("Voices available:")
+    for voice in voiceList:
+        print(str(voiceList.index(voice)+1) + ") " + voice.initialName + " (" + voice.voiceID + ")")
+    chosenVoiceIndex = -1
+    while not (0 < chosenVoiceIndex < len(voiceList)):
+        try:
+            chosenVoiceIndex = int(input("Please choose a number.\n"))-1
+        except:
+            print("Not a valid number.")
+    ttsVoice = voiceList[chosenVoiceIndex]
 
     main()
