@@ -10,3 +10,4 @@ pydub
 vosk
 PyAudio
 obsws-python
+elevenlabslib
