@@ -190,7 +190,7 @@ if __name__ == '__main__':
     for voice in voiceList:
         print(str(voiceList.index(voice)+1) + ") " + voice.initialName + " (" + voice.voiceID + ")")
     chosenVoiceIndex = -1
-    while not (0 < chosenVoiceIndex < len(voiceList)):
+    while not (0 <= chosenVoiceIndex < len(voiceList)):
         try:
             chosenVoiceIndex = int(input("Please choose a number.\n"))-1
         except:
