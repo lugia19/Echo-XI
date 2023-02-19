@@ -100,7 +100,7 @@ def main():
 
     #We don't have the info about the files in the config.json file, let's add it by getting a test audio.
     if "sampwidth" not in configData:
-        wavTempFile = getWavBytesIOFromText("test")
+        wavTempFile = io.BytesIO(convert_to_wav_bytes(ttsVoice.generate_audio_bytes("test")))
         wf = wave.open(wavTempFile, "rb")
         configData["sampwidth"] = wf.getsampwidth()
         configData["channels"] = wf.getnchannels()
