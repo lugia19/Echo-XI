@@ -1,13 +1,13 @@
 git+https://github.com/benob/mosestokenizer.git
-numpy~=1.24.2
-regex~=2022.10.31
-torch~=1.13.1+cu117
-tqdm~=4.64.1
-transformers~=4.26.1
+numpy
+regex
+torch
+tqdm
+transformers
 
 requests
-pydub~=0.25.1
-vosk~=0.3.45
-PyAudio~=0.2.13
+pydub
+vosk
+PyAudio
 obsws-python
-elevenlabslib~=0.1.8
+elevenlabslib
