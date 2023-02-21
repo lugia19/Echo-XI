@@ -9,6 +9,8 @@ Can synchronize the detected voice with an OBS text source using [obsws-python](
 
 Warning: Python 3.11 is still not fully supported by pytorch (but it should work on the nightly build). I'd recommend using python 3.10.6
 
+Before anything else: you'll need to have ffmpeg in your $PATH. You can follow (this tutorial)[https://phoenixnap.com/kb/ffmpeg-windows] if you're on windows
+
 Clone the repo: `git clone https://github.com/lugia19/speechToSpeechElevenLabs.git`
 
 Create a venv (highly recommended): `python -m venv venv`
