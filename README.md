@@ -19,13 +19,22 @@ If you did it correctly, there should be (venv) at the start of the command line
 
 Install the requirements: `pip install -r requirements.txt`
 
-Run the script once to generate config.json (venv needs to be active): `python speechToSpeech.py`
+Download a vosk model and a recasepunc model (I personally also use the vosk one for recasepunc).
+They can be found at [here](https://alphacephei.com/vosk/models). For english I use `vosk-model-en-us-0.22` and `vosk-recasepunc-en-0.22`. Recasepunc is optional, but highly recommended to improve the output.
 
-Fill in the config.json file:
-- api_key is your xi_api_key from elevenlabs
-- vosk_model_path is the path to the directory containing the vosk voice recognition model ([download here](https://alphacephei.com/vosk/models), for english I use vosk-model-en-us-0.22)
-- voice_ID is the ID of the voice you'd like to use. You can find them by going to the [API docs](https://api.elevenlabs.io/docs) and calling the `voices` endpoint, which will list all voices available to your account and their IDs. (This will be much easier in the future, once I actually start working on a python library for elevenlabs)
-- obs_password and obs_port are the password and port for obs-websocket, if you're using the OBS integration for subtitles. WARNING: The script uses the V5 websocket API, so you'll want an up to date (V28 or newer) build of OBS with websocket built-in, rather than the plugin.
-- repunc_model_path is the path to the model for recasepunc. I use the english one found on the same page as the normal vosk model.
+Place them both in the same directory as speech2speech.py. The resulting directory structure should be something like this:
 
-Run it again, select your input and output and it should start.
+```
+venv
+vosk-model-en-us-0.22
+vosk-recasepunc-en-0.22
+speech2speech.py
+```
+
+Run the script. It will ask you your API key (if you would like for it to not ask, you can add it to the config.json file) and for you to choose a voice to use. 
+
+In addition, it will try to find the vosk models in the current directory. Everything should work fine if you followed the previous steps.
+
+It will also prompt you asking if you would like to change your OBS-websocket settings. These are used for the OBS integration, where the detected text can be written to a text object for live subtitles.
+
+Select your input and output and it should start, after asking you if you'd like to enable recasepunc and the OBS integration.
