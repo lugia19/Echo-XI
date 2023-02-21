@@ -24,8 +24,9 @@ Run the script once to generate config.json (venv needs to be active): `python s
 Fill in the config.json file:
 - api_key is your xi_api_key from elevenlabs
 - vosk_model_path is the path to the directory containing the vosk voice recognition model ([download here](https://alphacephei.com/vosk/models), for english I use vosk-model-en-us-0.22)
-- voice_ID is the ID of the voice you'd like to use. You can find them by going to the [API docs](https://api.elevenlabs.io/docs) and calling the `voices` endpoint, which will list all voices available to your account and their IDs. (This will be much easier in the future, once I actually start working on a python library for elevenlabs)
 - obs_password and obs_port are the password and port for obs-websocket, if you're using the OBS integration for subtitles. WARNING: The script uses the V5 websocket API, so you'll want an up to date (V28 or newer) build of OBS with websocket built-in, rather than the plugin.
 - repunc_model_path is the path to the model for recasepunc. I use the english one found on the same page as the normal vosk model.
 
 Run it again, select your input and output and it should start.
+
+If you would like to use the voice on something like discord, use [VB-Cable](https://vb-audio.com/Cable/). In the script select your normal microphone as input, `VB-Cable input` as the output, then on discord select `VB-Cable output` as the input. Yes, it's a little confusing.
