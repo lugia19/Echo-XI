@@ -15,23 +15,57 @@ import obsws_python as obs
 #Important! The wordpiecetokenizer import ISN'T UNUSED! DON'T TOUCH IT!
 from recasepunc import CasePuncPredictor, WordpieceTokenizer
 
-def main():
-    print("Enable text output for OBS websocket?")
-    userInput = ""
-    while len(userInput) == 0 or (userInput[0].lower() != "y" and userInput[0].lower() != "n"):
-        userInput=input("y/n?")
-    subtitleEnable = userInput[0].lower() == "y"
-
-    print("Would you like to enable case/punctuation detection? (Improves AI voice and subtitles)")
+configData = {}
+ttsVoice = {}
+voskModel = {}
+def yesNo(prompt) -> bool:
+    print(prompt)
     userInput = ""
     while len(userInput) == 0 or (userInput[0].lower() != "y" and userInput[0].lower() != "n"):
         userInput = input("y/n?")
-    recasePuncEnable = userInput[0].lower() == "y"
+    return userInput[0].lower() == "y"
+
+def getNumber(prompt, minValue, maxValue) -> int:
+    print(prompt)
+    chosenVoiceIndex = -1
+    while not (minValue <= chosenVoiceIndex <= maxValue):
+        try:
+            chosenVoiceIndex = int(input("Please choose a number.\n"))
+        except:
+            print("Not a valid number.")
+    return chosenVoiceIndex
+
+def main():
+    subtitleEnable = yesNo("Enable text output for OBS websocket?")
+    recasePuncEnable = yesNo("Would you like to enable case/punctuation detection? (Improves AI voice and subtitles)")
+
     if recasePuncEnable:
-        if configData["repunc_model_path"] == "REPUNC_MODEL_PATH_(OPTIONAL)":
-            print("Please set the repunc_model_path in the config file!")
-            return
-        predictor = CasePuncPredictor(configData["repunc_model_path"], lang="en", flavor="bert-base-uncased")
+        repuncModelPath = ""
+        if configData["repunc_model_path"] == "":
+            print("Recase model path not set in config, checking if there is one in the working directory...")
+            eligibleDirectories = list()
+            for directory in os.listdir(os.getcwd()):
+                if os.path.isdir(directory) and "vosk-recasepunc-" in directory:
+                    eligibleDirectories.append(directory)
+            if len(eligibleDirectories) == 0:
+                print("Could not automatically determine location of recasepunc model, please either put it in the same directory as the script or set the location in config.json")
+                exit()
+            elif len(eligibleDirectories) == 1:
+                repuncModelPath = eligibleDirectories[0]
+                repuncModelPath = os.path.join(repuncModelPath, "checkpoint")
+            else:
+                print("Found multiple eligible repunc models.")
+                i = 0
+                for directory in eligibleDirectories:
+                    print(str(i + 1) + ") " + directory)
+                    i += 1
+                chosenDirIndex = getNumber("Please choose one.", minValue=1, maxValue=len(eligibleDirectories)) - 1
+                repuncModelPath = eligibleDirectories[chosenDirIndex]
+                repuncModelPath = os.path.join(repuncModelPath, "checkpoint")
+        else:
+            repuncModelPath = configData["repunc_model_path"]
+
+        predictor = CasePuncPredictor(repuncModelPath, lang="en", flavor="bert-base-uncased")
 
     if subtitleEnable:
         obsPort = configData["obs_port"]
@@ -42,11 +76,7 @@ def main():
         textItem = None
         for item in itemList:
             if item["inputKind"] == "text_gdiplus_v2":
-                print("Found text item " + item["sourceName"] + ", use it for subtitles?")
-                userInput = ""
-                while len(userInput) == 0 or (userInput[0].lower() != "y" and userInput[0].lower() != "n"):
-                    userInput = input("y/n?")
-                if userInput == "y":
+                if yesNo("Found text item " + item["sourceName"] + ", use it for subtitles?"):
                     textItem = item
                     break
         if textItem is None:
@@ -79,8 +109,7 @@ def main():
     print("\nChosen input info: " + str(pyAudio.get_device_info_by_host_api_device_index(0, chosenInput))+"\n")
     inputRate = int(pyAudio.get_device_info_by_host_api_device_index(0, chosenInput)["defaultSampleRate"])
     try:
-        model = Model(modelPath)
-        recognizer = KaldiRecognizer(model, inputRate)
+        recognizer = KaldiRecognizer(voskModel, inputRate)
     except:
         print("Could not open model. Did you remember to double escape the backslashes in the config?")
         return
@@ -157,44 +186,79 @@ def convert_to_wav_bytes(mp3Bytes:bytes) -> bytes:
     wavBytes.seek(0)
     return wavBytes.read()
 
-
-
-
-if __name__ == '__main__':
+def setup():
     # Setup
-    if not os.path.exists("config.json"):
-        configData: dict[str, str | int] = {
-            "api_key": "API_KEY",
-            "vosk_model_path": "VOSK_MODEL_PATH",
-            "repunc_model_path": "REPUNC_MODEL_PATH_(OPTIONAL)",
-            "obs_password": "",
-            "obs_port": "4455"
-        }
-        json.dump(configData, open("config.json", "w"), indent=4)
-        print("Please fill in the settings in config.json, remebering to double escape the backslashes in paths!")
-        exit()
+    defaultConfig: dict[str, str | int] = {
+        "api_key": "",
+        "vosk_model_path": "",
+        "repunc_model_path": "",
+        "obs_password": "",
+        "obs_port": 4455
+    }
 
-    configData = {}
+    if not os.path.exists("config.json"):
+        json.dump(defaultConfig, open("config.json", "w"), indent=4)
+
+    global configData
     try:
         configData = json.load(open("config.json", "r"))
     except:
         print("Invalid config! Did you remember to escape the backslashes?")
         exit()
 
-    modelPath = configData["vosk_model_path"]
+    if configData["api_key"] == "":
+        configData["api_key"] = input("Please input your elevenlabs API key. It can be found on the site, under profile.")
+        json.dump(configData, open("config.json", "w"))
+
+    if yesNo("Would you like to edit the settings for OBS websocket?"):
+        configData["obs_password"] = input("Please input the password.")
+        configData["obs_port"] = input("Please input the port.")
+        json.dump(configData, open("config.json","w"))
+
+    voskModelPath = ""
+    if configData["vosk_model_path"] != "":
+        voskModelPath = configData["vosk_model_path"]
+    else:
+        print("Vosk model path not set in config, checking if there is one in the working directory...")
+        eligibleDirectories = list()
+        for directory in os.listdir(os.getcwd()):
+            if os.path.isdir(directory) and "vosk-model-" in directory:
+                eligibleDirectories.append(directory)
+        if len(eligibleDirectories) == 0:
+            print("Could not automatically determine location of vosk model, please either put it in the same directory as the script or set the location in config.json")
+            exit()
+        elif len(eligibleDirectories) == 1:
+            voskModelPath = eligibleDirectories[0]
+        else:
+            i = 0
+            for directory in eligibleDirectories:
+                print(str(i+1) + ") " + directory)
+                i += 1
+            chosenDirIndex = getNumber("Found multiple eligible vosk models. Please choose one.", minValue=1, maxValue=len(eligibleDirectories))-1
+            voskModelPath = eligibleDirectories[chosenDirIndex]
+
+    global voskModel
+    voskModel = Model(voskModelPath)
+
     user = ElevenLabsUser(configData["api_key"])
 
     voiceList = user.get_available_voices()
 
     print("Voices available:")
     for voice in voiceList:
-        print(str(voiceList.index(voice)+1) + ") " + voice.initialName + " (" + voice.voiceID + ")")
+        print(str(voiceList.index(voice) + 1) + ") " + voice.initialName + " (" + voice.voiceID + ")")
     chosenVoiceIndex = -1
     while not (0 <= chosenVoiceIndex < len(voiceList)):
         try:
-            chosenVoiceIndex = int(input("Please choose a number.\n"))-1
+            chosenVoiceIndex = int(input("Please choose a number.\n")) - 1
         except:
             print("Not a valid number.")
+
+    global ttsVoice
     ttsVoice = voiceList[chosenVoiceIndex]
 
+
+
+if __name__ == '__main__':
+    setup()
     main()
