@@ -38,3 +38,5 @@ In addition, it will try to find the vosk models in the current directory. Every
 It will also prompt you asking if you would like to change your OBS-websocket settings. These are used for the OBS integration, where the detected text can be written to a text object for live subtitles.
 
 Select your input and output and it should start, after asking you if you'd like to enable recasepunc and the OBS integration.
+
+If you would like to use the voice on something like discord, use [VB-Cable](https://vb-audio.com/Cable/). In the script select your normal microphone as input, `VB-Cable input` as the output, then on discord select `VB-Cable output` as the input. Yes, it's a little confusing.
