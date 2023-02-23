@@ -5,9 +5,16 @@ torch
 tqdm
 transformers
 
-requests
-pydub
-vosk
-PyAudio
-obsws-python
+pyttsx3
 elevenlabslib
+
+requests
+PyAudio
+pydub
+
+openai-whisper
+vosk
+SpeechRecognition
+
+obsws-python
+

@@ -7,13 +7,6 @@ from helper import updateConfigFile
 from ttsProviders.__TTSProviderAbstract import TTSProvider
 
 ttsVoice:ElevenLabsVoice
-def convert_to_wav_bytes(mp3Bytes: bytes) -> bytes:
-    wavBytes = io.BytesIO()
-    sound = AudioSegment.from_file_using_temporary_files(io.BytesIO(mp3Bytes), format="mp3")
-    sound.export(wavBytes, format="wav")
-    wavBytes.seek(0)
-    return wavBytes.read()
-
 
 class ElevenlabsProvider(TTSProvider):
     def __init__(self):
@@ -48,5 +41,9 @@ class ElevenlabsProvider(TTSProvider):
         global ttsVoice
         ttsVoice = voiceList[chosenVoiceIndex]
     def synthesizeToWavBytes(self, prompt) -> bytes:
-        return convert_to_wav_bytes(ttsVoice.generate_audio_bytes(prompt))
-
+        mp3Bytes = ttsVoice.generate_audio_bytes(prompt)
+        wavBytes = io.BytesIO()
+        sound = AudioSegment.from_file_using_temporary_files(io.BytesIO(mp3Bytes), format="mp3")
+        sound.export(wavBytes, format="wav")
+        wavBytes.seek(0)
+        return wavBytes.read()

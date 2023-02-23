@@ -13,17 +13,21 @@ import pyaudio
 from vosk import Model, KaldiRecognizer
 
 from ttsProviders.ElevenlabsProvider import ElevenlabsProvider
+from ttsProviders.PyttsxProvider import PyttsxProvider
 from ttsProviders.__TTSProviderAbstract import TTSProvider
 
-subtitlesEnabled = False
-recasepuncEnabled = False
 voskModel:vosk.Model        #TODO: Rework this to use the speechsynthesis lib
 ttsProvider:TTSProvider
 
 def main():
-    if helper.yesNo("Enable text output for OBS websocket?"):
+    subtitlesEnabled = helper.yesNo("Enable text output for OBS websocket?")
+
+    if subtitlesEnabled:
         subtitle_setup(helper.configData["obs_host"], helper.configData["obs_port"], helper.configData["obs_password"])
-    if helper.yesNo("Would you like to enable case/punctuation detection? (Improves AI voice and subtitles)"):
+
+    recasepuncEnabled =helper.yesNo("Would you like to enable case/punctuation detection? (Improves AI voice and subtitles)")
+
+    if recasepuncEnabled:
         recasepunc_setup()
 
     pyAudio = pyaudio.PyAudio()
@@ -67,15 +71,16 @@ def main():
     print("\nChosen output info: " + str(pyAudio.get_device_info_by_host_api_device_index(0, chosenOutput))+"\n")
 
     #We don't have the info about the files in the config.json file, let's add it by getting a test audio.
-    if "sampwidth" not in helper.configData["ttsConfig"][ttsProvider.__class__.__name__]:
+    ttsProviderConfig = helper.configData["ttsConfig"][ttsProvider.__class__.__name__]
+    if "sampwidth" not in ttsProviderConfig:
         wavTempFile = io.BytesIO(ttsProvider.synthesizeToWavBytes("A"))
         wf = wave.open(wavTempFile, "rb")
-        helper.configData["ttsConfig"][ttsProvider.__class__.__name__]["sampwidth"] = wf.getsampwidth()
-        helper.configData["ttsConfig"][ttsProvider.__class__.__name__]["channels"] = wf.getnchannels()
-        helper.configData["ttsConfig"][ttsProvider.__class__.__name__]["framerate"] = wf.getframerate()
+        ttsProviderConfig["sampwidth"] = wf.getsampwidth()
+        ttsProviderConfig["channels"] = wf.getnchannels()
+        ttsProviderConfig["framerate"] = wf.getframerate()
         helper.updateConfigFile()
 
-    outputStream = pyAudio.open(format=pyAudio.get_format_from_width(helper.configData["sampwidth"]), channels=helper.configData["channels"], rate=helper.configData["framerate"], output=True, output_device_index=chosenOutput)
+    outputStream = pyAudio.open(format=pyAudio.get_format_from_width(ttsProviderConfig["sampwidth"]), channels=ttsProviderConfig["channels"], rate=ttsProviderConfig["framerate"], output=True, output_device_index=chosenOutput)
     print("\nListening for voice input...\n")
     while micStream.is_active():
         data = micStream.read(4096, exception_on_overflow=False)
@@ -110,12 +115,10 @@ def setup():
 
     #Make the user choose from a provider and ensure that the config data field is present in the config file.
     global ttsProvider
-    availableProviders = [ElevenlabsProvider]
-    classNames = list()
-    for providerClass in availableProviders:
-        classNames.append(providerClass.__name__)
-
-    chosenProviderClass:ttsProvider = availableProviders[classNames.index(helper.chooseFromListOfStrings("Please choose a TTS provider.", classNames))]
+    availableProviders = [ElevenlabsProvider, PyttsxProvider]
+    options = ["ElevenLabs - High quality, online, paid",
+               "pyttsx3 - Low quality, local, free"]
+    chosenProviderClass:ttsProvider = availableProviders[options.index(helper.chooseFromListOfStrings("Please choose a TTS provider.", options))]
 
     if chosenProviderClass.__name__ not in helper.configData["ttsConfig"]:
         helper.configData["ttsConfig"][chosenProviderClass.__name__] = dict()
