@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import vosk
 
 from misc.obsSubtitles import *
@@ -42,6 +41,7 @@ def main():
             outputDeviceIndexes.append(i)
 
     chosenInput = -1
+
     for deviceIndex in inputDeviceIndexes:
         print("Input Device id ", deviceIndex, " - ", pyAudio.get_device_info_by_host_api_device_index(0, deviceIndex).get('name'))
     while not(chosenInput in inputDeviceIndexes):
@@ -50,6 +50,7 @@ def main():
         except:
             print("Not a valid number.")
     print("\nChosen input info: " + str(pyAudio.get_device_info_by_host_api_device_index(0, chosenInput))+"\n")
+
     inputRate = int(pyAudio.get_device_info_by_host_api_device_index(0, chosenInput)["defaultSampleRate"])
     try:
         recognizer = KaldiRecognizer(voskModel, inputRate)
@@ -58,7 +59,6 @@ def main():
         return
 
     micStream = pyAudio.open(format=pyaudio.paInt16, channels=1, rate=inputRate, input=True, frames_per_buffer=8192, input_device_index=chosenInput)
-
 
     for deviceIndex in outputDeviceIndexes:
         print("Output Device id ", deviceIndex, " - ", pyAudio.get_device_info_by_host_api_device_index(0, deviceIndex).get('name'))
@@ -82,6 +82,7 @@ def main():
 
     outputStream = pyAudio.open(format=pyAudio.get_format_from_width(ttsProviderConfig["sampwidth"]), channels=ttsProviderConfig["channels"], rate=ttsProviderConfig["framerate"], output=True, output_device_index=chosenOutput)
     print("\nListening for voice input...\n")
+
     while micStream.is_active():
         data = micStream.read(4096, exception_on_overflow=False)
 
@@ -103,7 +104,7 @@ def main():
 
 def setup():
     helper.setupConfig()
-    #TODO: Change this from using only vosk to the other library
+    #TODO: Create my own speechRecognition interface.
     if helper.configData["vosk_model_path"] != "":
         voskModelPath = helper.configData["vosk_model_path"]
     else:

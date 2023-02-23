@@ -12,9 +12,9 @@ requests
 PyAudio
 pydub
 
+
 openai-whisper
 vosk
-SpeechRecognition
 
 obsws-python
 
