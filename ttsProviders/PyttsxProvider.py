@@ -1,28 +1,26 @@
 import os
 
 import pyttsx3
-
+import sounddevice as sd
+import soundfile as sf
 import helper
 from ttsProviders.__TTSProviderAbstract import TTSProvider
 
-engine: pyttsx3.Engine
 class PyttsxProvider(TTSProvider):
     def __init__(self):
-        global engine
-        engine = pyttsx3.init()
-        voices = engine.getProperty('voices')
+        self.engine = pyttsx3.init()
+        voices = self.engine.getProperty('voices')
         voiceNames = list()
         for voice in voices:
             voiceNames.append(voice.name)
 
         chosenVoice = voiceNames.index(helper.chooseFromListOfStrings("Please choose a voice.",voiceNames))
         chosenVoice = voices[chosenVoice].id
-        engine.setProperty("voice",chosenVoice)
-    def synthesizeToWavBytes(self, prompt) -> bytes:
-        engine.save_to_file(prompt,"temp.wav")
-        engine.runAndWait()
-        fp = open("temp.wav","rb")
-        fileBytes = fp.read()
-        fp.close()
+        self.engine.setProperty("voice",chosenVoice)
+    def synthesizeAndPlayAudio(self, prompt, outputDeviceIndex) -> None:
+        self.engine.save_to_file(prompt,"temp.wav")
+        self.engine.runAndWait()
+        data, fs = sf.read('temp.wav')
+        sd.play(data, fs, blocking=True)
         os.remove("temp.wav")
-        return fileBytes
+        return

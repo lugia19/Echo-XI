@@ -1,20 +1,22 @@
 import io
-from elevenlabslib import ElevenLabsUser, ElevenLabsVoice
+import wave
+
+from elevenlabslib import ElevenLabsUser
 from pydub import AudioSegment
 
 import helper
 from helper import updateConfigFile
 from ttsProviders.__TTSProviderAbstract import TTSProvider
 
-ttsVoice:ElevenLabsVoice
-
 class ElevenlabsProvider(TTSProvider):
     def __init__(self):
-
         eDefaultConfigData = {
             "api_key":"",
             "voice_id":""
         }
+        if self.__class__.__name__ not in helper.configData["ttsConfig"]:
+            helper.configData["ttsConfig"][self.__class__.__name__] = eDefaultConfigData
+
         eConfigData = helper.configData["ttsConfig"][self.__class__.__name__]
         for key in eDefaultConfigData:
             if key not in eConfigData:
@@ -38,12 +40,6 @@ class ElevenlabsProvider(TTSProvider):
             except:
                 print("Not a valid number.")
 
-        global ttsVoice
-        ttsVoice = voiceList[chosenVoiceIndex]
-    def synthesizeToWavBytes(self, prompt) -> bytes:
-        mp3Bytes = ttsVoice.generate_audio_bytes(prompt)
-        wavBytes = io.BytesIO()
-        sound = AudioSegment.from_file_using_temporary_files(io.BytesIO(mp3Bytes), format="mp3")
-        sound.export(wavBytes, format="wav")
-        wavBytes.seek(0)
-        return wavBytes.read()
+        self.ttsVoice = voiceList[chosenVoiceIndex]
+    def synthesizeAndPlayAudio(self, prompt, outputDeviceIndex) -> None:
+        self.ttsVoice.generate_and_stream_audio(prompt, outputDeviceIndex)

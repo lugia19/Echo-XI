@@ -1,6 +1,11 @@
 import json
 import os
 
+from ttsProviders.__TTSProviderAbstract import TTSProvider
+
+ttsProvider:TTSProvider
+subtitlesEnabled = False
+chosenOutput = -1
 
 defaultConfig: dict[str, str | int] = {
         "api_key": "",

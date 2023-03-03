@@ -1,4 +1,4 @@
 
 class TTSProvider:
-    def synthesizeToWavBytes(self, prompt) -> bytes:
+    def synthesizeAndPlayAudio(self, prompt, outputDeviceIndex) -> None:
         pass

@@ -6,15 +6,15 @@ tqdm
 transformers
 
 pyttsx3
+soundfile
+PyAudio
+sounddevice
 elevenlabslib
 
 requests
-PyAudio
-pydub
-
-
 openai-whisper
 vosk
 
 obsws-python
 
+azure-cognitiveservices-speech
