@@ -1,10 +1,8 @@
 from __future__ import annotations
 from misc.obsSubtitles import *
-from misc.recasepuncCaller import *
 import helper
 
 import os
-import pyaudio
 
 from ttsProviders.ElevenlabsProvider import ElevenlabsProvider
 from ttsProviders.PyttsxProvider import PyttsxProvider
@@ -15,66 +13,43 @@ from speechRecognition.WhisperProvider import WhisperProvider
 from speechRecognition.VoskProvider import VoskProvider
 from speechRecognition.AzureProvider import AzureProvider
 
+#THESE IMPORTS ARE NOT UNUSED. recasepunc does some weird reflection stuff.
+from misc.recasepunc import CasePuncPredictor, WordpieceTokenizer
+dummyVar:CasePuncPredictor
+dummyVar2:WordpieceTokenizer
+
+
+
 srProvider:SpeechRecProvider
 def main():
-    helper.subtitlesEnabled = helper.yesNo("Enable text output for OBS websocket?")
+    helper.subtitlesEnabled = helper.choose_yes_no("Enable text output for OBS websocket?")
 
     if helper.subtitlesEnabled:
-        subtitle_setup(helper.configData["obs_host"], helper.configData["obs_port"], helper.configData["obs_password"])
+        obs_config = helper.get_obs_config()
+        subtitle_setup(obs_config["obs_host"], obs_config["obs_port"], obs_config["obs_password"])
 
-    recasepuncEnabled = helper.yesNo("Would you like to enable case/punctuation detection? (Improves AI voice and subtitles)")
-
-    if recasepuncEnabled:
-        recasepunc_setup()
-
-    pyABackend = pyaudio.PyAudio()
-    defaultHostAPI = pyABackend.get_default_host_api_info()
-
-    inputDeviceNames = list()
-
-    for i in range(defaultHostAPI["deviceCount"]):
-        device = pyABackend.get_device_info_by_host_api_device_index(defaultHostAPI["index"], i)
-        if device["maxInputChannels"] > 0:
-            inputDeviceNames.append(device["name"] + " - " + str(device["index"]))
-
-    outputDeviceNames = list()
-
-    for i in range(defaultHostAPI["deviceCount"]):
-        device = pyABackend.get_device_info_by_host_api_device_index(defaultHostAPI["index"], i)
-        if device["maxOutputChannels"] > 0:
-            outputDeviceNames.append(device["name"] + " - " + str(device["index"]))
-
-
-    chosenInput = helper.chooseFromListOfStrings("Please choose your input device.", inputDeviceNames)
-    chosenInput = int(chosenInput[chosenInput.rfind(" - ")+3:])
-    chosenInputInfo = pyABackend.get_device_info_by_index(chosenInput)
-    print("\nChosen input info: " + str(chosenInputInfo)+"\n")
-
-    try:
-        srProvider.setup_recognition(chosenInputInfo)
-    except:
-        print("Error setting up speech recognition.")
-        return
-
-    helper.chosenOutput = helper.chooseFromListOfStrings("Please choose your output device.", outputDeviceNames)
-    helper.chosenOutput = int(helper.chosenOutput[helper.chosenOutput.rfind(" - ") + 3:])
-    chosenOutputInfo = pyABackend.get_device_info_by_index(helper.chosenOutput)
-    print("\nChosen input info: " + str(chosenOutputInfo) + "\n")
+    chosenOutputInfo = helper.select_portaudio_device("output")
+    helper.chosenOutput = chosenOutputInfo["index"]
 
     print("\nListening for voice input...\n")
     srProvider.recognize_loop()
 
 
+
 def process_text(recognizedText:str):
-    helper.ttsProvider.synthesizeAndPlayAudio(recognizedText, helper.chosenOutput)
-    if helper.subtitlesEnabled:
-        subtitle_update(recognizedText)
+    # If you want to do anything with the text (like sending it off to chatGPT and playing back the response instead) this is where you do it.
+    if recognizedText != "":    #Ignore empty output
+        #TODO: This is where we detect if the text is NOT english. If it isn't, we translate with deepl (or googletrans if the language isn't supported by deepl or no key was provided).
+
+        helper.ttsProvider.synthesizeAndPlayAudio(recognizedText, helper.chosenOutput)
+        if helper.subtitlesEnabled:
+            subtitle_update(recognizedText)
     print("\nListening for voice input...\n")
 
 
 
 def setup():
-    helper.setupConfig()
+    helper.setup_config()
 
     modelDir = os.path.join(os.getcwd(),"models")
     if not os.path.isdir(modelDir):
@@ -97,11 +72,7 @@ def setup():
     options = ["Vosk - Good accuracy, local, fast",
                "Whisper - Great accuracy, local, slow",
                "Azure - Great accuracy, online, fast"]
-    chosenSRProviderClass:SpeechRecProvider = availableSRProviders[options.index(helper.chooseFromListOfStrings("Please choose a speech recognition provider.", options))]
-
-    if chosenSRProviderClass.__name__ not in helper.configData["ttsConfig"]:
-        helper.configData["ttsConfig"][chosenSRProviderClass.__name__] = dict()
-        helper.updateConfigFile()
+    chosenSRProviderClass:SpeechRecProvider = availableSRProviders[options.index(helper.choose_from_list_of_strings("Please choose a speech recognition provider.", options))]
 
     srProvider = chosenSRProviderClass()
 
@@ -109,12 +80,8 @@ def setup():
     #Make the user choose from a provider and ensure that the config data field is present in the config file.
     availableTTSProviders:list[TTSProvider] = [ElevenlabsProvider, PyttsxProvider]
     options = ["ElevenLabs - High quality, online, paid",
-               "pyttsx3 - Low quality, local, free"]
-    chosenTTSProviderClass:TTSProvider = availableTTSProviders[options.index(helper.chooseFromListOfStrings("Please choose a TTS provider.", options))]
-
-    if chosenTTSProviderClass.__name__ not in helper.configData["ttsConfig"]:
-        helper.configData["ttsConfig"][chosenTTSProviderClass.__name__] = dict()
-        helper.updateConfigFile()
+               "pyttsx3 - Low quality, local, free (ONLY OUTPUTS TO DEFAULT PLAYBACK DEVICE!)"]
+    chosenTTSProviderClass:TTSProvider = availableTTSProviders[options.index(helper.choose_from_list_of_strings("Please choose a TTS provider.", options))]
 
     helper.ttsProvider = chosenTTSProviderClass()
     print("")

@@ -15,7 +15,7 @@ def subtitle_setup(hostAddress, obsPort, obsPassword):
     global textItem
     for item in itemList:
         if item["inputKind"] == "text_gdiplus_v2":
-            if helper.yesNo("Found text item " + item["sourceName"] + ", use it for subtitles?"):
+            if helper.choose_yes_no("Found text item " + item["sourceName"] + ", use it for subtitles?"):
                 textItem = item
                 break
     if textItem is None:

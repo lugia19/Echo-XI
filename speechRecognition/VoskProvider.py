@@ -1,6 +1,15 @@
 import os
 from typing import Optional
+import platform
+
+#if platform.system() == "Windows":
+#    import pyaudiowpatch as pyaudio
+#else:
+#    import pyaudio
+
 import pyaudio
+from misc.recasepuncCaller import *
+
 
 from vosk import Model, KaldiRecognizer
 
@@ -11,14 +20,22 @@ class VoskProvider(SpeechRecProvider):
     def __init__(self):
         super().__init__()
         self.type = "vosk"
-        self.model = Model(self.select_model_from_dir())
-        self.recognizer:Optional[KaldiRecognizer] = None
-        self.inputRate = -1
-        self.micID = -1
-    def setup_recognition(self, microphoneData):
-        self.inputRate = int(microphoneData["defaultSampleRate"])
-        self.recognizer:KaldiRecognizer = KaldiRecognizer(self.model, self.inputRate)
-        self.micID = microphoneData["index"]
+        vosk_config = helper.get_provider_config(self)
+        if vosk_config["model_path"] != "":
+            self.model = Model(vosk_config["model_path"])
+        else:
+            self.model = Model(self.select_model_from_dir())
+
+        self.recasepuncEnabled = helper.choose_yes_no("Would you like to enable case/punctuation detection? (Improves AI voice and subtitles)")
+
+        if self.recasepuncEnabled:
+            if vosk_config["repunc_model_path"] != "":
+                recasepunc_setup(vosk_config["repunc_model_path"])
+            else:
+                recasepunc_setup()
+
+        self.microphoneInfo = helper.select_portaudio_device("input")
+        self.recognizer:KaldiRecognizer = KaldiRecognizer(self.model, self.microphoneInfo["defaultSampleRate"])
 
     @staticmethod
     def select_model_from_dir() -> str:
@@ -35,11 +52,18 @@ class VoskProvider(SpeechRecProvider):
         elif len(eligibleDirectories) == 1:
             voskModelPath = eligibleDirectories[0]
         else:
-            voskModelPath = helper.chooseFromListOfStrings("Found multiple eligible vosk models. Please choose one.", eligibleDirectories)
+            voskModelPath = helper.choose_from_list_of_strings("Found multiple eligible vosk models. Please choose one.", eligibleDirectories)
         return voskModelPath
     def recognize_loop(self):
         pyABackend = pyaudio.PyAudio()
-        micStream = pyABackend.open(format=pyaudio.paInt16, channels=1, rate=self.inputRate, input=True, frames_per_buffer=8192, input_device_index=self.micID)
+        micStream = pyABackend.open(
+                                    format=pyaudio.paInt16,
+                                    channels=1, #The number of channels MUST be 1 for vosk to work.
+                                    rate=int(self.microphoneInfo["defaultSampleRate"]),
+                                    input=True,
+                                    frames_per_buffer=8192,
+                                    input_device_index=self.microphoneInfo["index"]
+                                    )
         try:
             while micStream.is_active():
                 data = micStream.read(4096, exception_on_overflow=False)
@@ -47,7 +71,10 @@ class VoskProvider(SpeechRecProvider):
                 if self.recognizer.AcceptWaveform(data):
                     recognizedText = self.recognizer.Result()[14:-3]
                     if recognizedText != "":
+                        if self.recasepuncEnabled:
+                            recognizedText = recasepunc_parse(recognizedText)
                         print("Recognized text: " + recognizedText)
+
                         from speechToSpeech import process_text
                         process_text(recognizedText)
                         print("\nListening for voice input...\n")

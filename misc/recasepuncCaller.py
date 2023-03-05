@@ -21,7 +21,7 @@ def recasepunc_setup(overrideRepuncModelPath=None):
             repuncModelPath = eligibleDirectories[0]
             repuncModelPath = os.path.join(repuncModelPath, "checkpoint")
         else:
-            repuncModelPath = helper.chooseFromListOfStrings("Found multiple eligible repunc models.", eligibleDirectories)
+            repuncModelPath = helper.choose_from_list_of_strings("Found multiple eligible repunc models.", eligibleDirectories)
             repuncModelPath = os.path.join(repuncModelPath, "checkpoint")
     else:
         repuncModelPath = overrideRepuncModelPath

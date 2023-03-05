@@ -1,3 +1,4 @@
+#Requirements for recasepunc:
 git+https://github.com/benob/mosestokenizer.git
 numpy
 regex
@@ -5,16 +6,33 @@ torch
 tqdm
 transformers
 
+#Requirements for pyttsx3 TTS:
 pyttsx3
 soundfile
-PyAudio
 sounddevice
-elevenlabslib
 
+#Requirements for 11.ai TTS:
+elevenlabslib
 requests
-openai-whisper
+
+#Requirements for the vosk recognition:
 vosk
 
-obsws-python
+#PyAudio; sys.platform != 'win32'
+#PyAudioWPatch; sys.platform == 'win32'      #This is a fork of pyaudio that support WASAPI loopback devices, so you can use an output as an input.
+#So as it turns out, vosk can only recognize input from single-channel sources. In addition, WASAPI loopback devices seem unable to use any number of channels
+#that isn't the maximum, so I had to scrap this whole idea. You'll need to rely on something like VBCable if you want to use an audio output as input.
+PyAudio
 
+#Requirements for the whisper recognition:
+openai-whisper
+
+
+#Requirements for the azure recognition:
 azure-cognitiveservices-speech
+azure
+pycaw; sys.platform == 'win32'
+comtypes; sys.platform == 'win32'
+
+
+obsws-python
