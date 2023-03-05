@@ -38,7 +38,9 @@ defaultConfig: dict[str, str | int] = {
                 "repunc_model_path": ""
             },
             "WhisperProvider": {
-                #TBA
+                "pause_time": 0.8,
+                "energy_threshold": 300,
+                "dynamic_energy_threshold": True
             },
             "AzureProvider": {
                 "speech_key" : "",
@@ -56,12 +58,22 @@ def choose_yes_no(prompt) -> bool:
         userInput = input("y/n?")
     return userInput[0].lower() == "y"
 
-def choose_number(prompt, minValue, maxValue) -> int:
+def choose_int(prompt, minValue, maxValue) -> int:
     print(prompt)
     chosenVoiceIndex = -1
     while not (minValue <= chosenVoiceIndex <= maxValue):
         try:
             chosenVoiceIndex = int(input("Input a number between " + str(minValue) +" and " + str(maxValue)+"\n"))
+        except:
+            print("Not a valid number.")
+    return chosenVoiceIndex
+
+def choose_float(prompt, minValue, maxValue) -> int:
+    print(prompt)
+    chosenVoiceIndex = -1
+    while not (minValue <= chosenVoiceIndex <= maxValue):
+        try:
+            chosenVoiceIndex = float(input("Input a number between " + str(minValue) +" and " + str(maxValue)+"\n"))
         except:
             print("Not a valid number.")
     return chosenVoiceIndex
@@ -75,7 +87,7 @@ def choose_from_list_of_strings(prompt, options:list[str]) -> str:
     for index, option in enumerate(options):
         print(str(index+1) + ") " + option)
 
-    chosenOption = choose_number("", 1, len(options)) - 1
+    chosenOption = choose_int("", 1, len(options)) - 1
     return options[chosenOption]
 
 
@@ -105,7 +117,7 @@ def setup_config():
             _configData[key] = value
 
 
-    while choose_yes_no("Would you like to edit your settings?"):
+    while choose_yes_no("Would you like to edit any of your settings?"):
         _edit_config_property_recursive(_configData)
 
     print("")
@@ -125,7 +137,7 @@ def _edit_config_property_recursive(dictToChooseFrom:dict):
     else:
         _edit_config_property_recursive(chosenProperty)
 
-def get_provider_config(provider: SpeechRecProvider | TTSProvider) -> dict[str, str]:
+def get_provider_config(provider: SpeechRecProvider | TTSProvider) -> dict[str, str|float|bool|int]:
 
     if type(provider) == TTSProvider:
         providerType = "text_to_speech_config"

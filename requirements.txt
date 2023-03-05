@@ -26,7 +26,7 @@ PyAudio
 
 #Requirements for the whisper recognition:
 openai-whisper
-
+SpeechRecognition
 
 #Requirements for the azure recognition:
 azure-cognitiveservices-speech
