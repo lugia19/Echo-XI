@@ -9,9 +9,10 @@ def recasepunc_setup(languageCode, overrideRepuncModelPath=None):
     uselessVar:WordpieceTokenizer
 
     if overrideRepuncModelPath is None or overrideRepuncModelPath == "":
-        print("Recase model path not set in config, checking if there is one in the working directory...")
+        modelsDir = os.path.join("models", "recasepunc")
+        print("Recase model path not set in config, checking if there is one in " + modelsDir + "...")
         eligibleDirectoriesAndfiles = list()
-        modelsDir = os.path.join("models","recasepunc")
+
         if not os.path.exists("models"):
             os.mkdir("models")
 
@@ -54,6 +55,9 @@ def recasepunc_setup(languageCode, overrideRepuncModelPath=None):
         repuncModelPath = overrideRepuncModelPath
 
     global predictor
+
+    print("Found a model. Initializing CasePuncPredictor...")
+
     from misc.recasepunc import default_flavors
     if languageCode in default_flavors.keys():
         flavor = default_flavors[languageCode]

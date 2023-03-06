@@ -162,9 +162,9 @@ def _edit_config_property_recursive(dictToChooseFrom:dict):
 
 def get_provider_config(provider: SpeechRecProvider | TTSProvider) -> dict[str, str|float|bool|int|list]:
 
-    if type(provider) == TTSProvider:
+    if TTSProvider in provider.__class__.__bases__:
         providerType = "text_to_speech_config"
-    else:
+    elif SpeechRecProvider in provider.__class__.__bases__:
         providerType = "speech_recognition_config"
 
     if providerType not in _configData:
