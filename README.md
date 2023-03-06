@@ -1,3 +1,5 @@
+CURRENTLY DOING A REWRITE, A LOT OF THIS IS PROBABLY WRONG. SORRY.
+
 # Speech to text to speech
 Allows speech2speech with elevenlabs' TTS, using the `elevenlabslib` module.
 
