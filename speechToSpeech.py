@@ -68,18 +68,6 @@ def setup():
     if not os.path.isdir(voskModelsDir):
         os.mkdir(voskModelsDir)
 
-    #The reason why I use vosk regardless to detect when the user begins/ends speaking is because whisper actually fails to do so sometimes.
-    #It's better to let vosk handle it then pass the audio off to the speech recognition provider.
-    voskVoiceDetectModelPath = os.path.join(voskModelsDir,"vosk-model-small-en-us-0.15")
-    if not os.path.isdir(voskVoiceDetectModelPath):
-        print("Please download the \"small-en-us\" vosk model and place it in " + voskVoiceDetectModelPath)
-        print("It is required for voice detection.")
-        exit(1)
-
-
-
-
-
     global srProvider
     availableSRProviders:list[SpeechRecProvider] = [VoskProvider, WhisperProvider, AzureProvider]
     options = ["Vosk"
