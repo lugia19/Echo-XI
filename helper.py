@@ -138,27 +138,31 @@ def _edit_config_property_recursive(dictToChooseFrom:dict):
     else:
         chosenKey = chosenOption
     chosenProperty = dictToChooseFrom[chosenKey]
-
-    if type(chosenProperty) == str:
-        dictToChooseFrom[chosenKey] = input("Please input the new value for " + chosenOption + " (current value:" +chosenProperty+")")
-        update_config_file()
-    elif type(chosenProperty) == list:
-        while True:
-            chosenProperty = dictToChooseFrom[chosenKey]
-            print("The current value of " + chosenOption + " is " + str(chosenProperty))
-            if len(chosenProperty) == 0:
-                addOrRemove = True
-            else:
-                addOrRemove = choose_yes_no("Would you like to add or remove an item from the list?", trueOption="Add", falseOption="Remove")
-            if addOrRemove:
-                dictToChooseFrom[chosenKey].append(input("Please input the new item."))
-            else:
-                dictToChooseFrom[chosenKey].remove(choose_from_list_of_strings("Please choose which item to remove.",chosenProperty))
-            if not choose_yes_no("Would you like to continue editing the list?"):
-                break
-        update_config_file()
-    elif type(chosenProperty) == dict:
+    if type(chosenProperty) == dict:
         _edit_config_property_recursive(chosenProperty)
+    else:
+        if type(chosenProperty) == str:
+            dictToChooseFrom[chosenKey] = input("Please input the new value for " + chosenOption + " (current value:" +chosenProperty+")")
+        elif type(chosenProperty) == int:
+            dictToChooseFrom[chosenKey] = choose_int("Please input the new value for " + chosenOption + " (current value:" +chosenProperty+")", minValue=0, maxValue=999)
+        elif type(chosenProperty) == float:
+            dictToChooseFrom[chosenKey] = choose_float("Please input the new value for " + chosenOption + " (current value:" +chosenProperty+")", minValue=0, maxValue=999)
+        elif type(chosenProperty) == list:
+            while True:
+                chosenProperty = dictToChooseFrom[chosenKey]
+                print("The current value of " + chosenOption + " is " + str(chosenProperty))
+                if len(chosenProperty) == 0:
+                    addOrRemove = True
+                else:
+                    addOrRemove = choose_yes_no("Would you like to add or remove an item from the list?", trueOption="Add", falseOption="Remove")
+                if addOrRemove:
+                    dictToChooseFrom[chosenKey].append(input("Please input the new item."))
+                else:
+                    dictToChooseFrom[chosenKey].remove(choose_from_list_of_strings("Please choose which item to remove.",chosenProperty))
+                if not choose_yes_no("Would you like to continue editing the list?"):
+                    break
+        update_config_file()
+
 
 def get_provider_config(provider: SpeechRecProvider | TTSProvider) -> dict[str, str|float|bool|int|list]:
 
