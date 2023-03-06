@@ -192,7 +192,7 @@ def get_obs_config():
 
 def get_deepl_config():
     return _configData["deepl_settings"]
-def select_portaudio_device(deviceType:str):
+def select_portaudio_device(deviceType:str, alsaOnly=False):
     """
     Makes the user choose an input or output device and returns that device's info.
     """
@@ -206,6 +206,12 @@ def select_portaudio_device(deviceType:str):
             if "WASAPI" in apiInfo["name"]:
                 hostAPIinfo = apiInfo
                 break
+    elif platform.system() == "Linux":
+        for i in range(pyABackend.get_host_api_count()):
+            apiInfo = pyABackend.get_host_api_info_by_index(i)
+            if "ALSA" in apiInfo["name"]:
+                hostAPIinfo = apiInfo
+                break
     if hostAPIinfo is None:
         hostAPIinfo = pyABackend.get_default_host_api_info()
 
@@ -214,7 +220,11 @@ def select_portaudio_device(deviceType:str):
     for i in range(hostAPIinfo["deviceCount"]):
         device = pyABackend.get_device_info_by_host_api_device_index(hostAPIinfo["index"], i)
         if device["max" + deviceType[0].upper() + deviceType[1:] + "Channels"] > 0:
-            deviceNames.append(device["name"] + " - " + str(device["index"]))
+            if platform.system() == "Linux" and alsaOnly:
+                if "(hw:" in device["name"]:
+                    deviceNames.append(device["name"] + " - " + str(device["index"]))
+            else:
+                deviceNames.append(device["name"] + " - " + str(device["index"]))
 
     chosenDeviceID = choose_from_list_of_strings("Please choose your " + deviceType + " device.", deviceNames)
     chosenDeviceID = int(chosenDeviceID[chosenDeviceID.rfind(" - ") + 3:])

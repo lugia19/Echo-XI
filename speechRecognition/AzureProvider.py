@@ -104,8 +104,6 @@ class AzureProvider(SpeechRecProvider):
 
     @staticmethod
     def chooseInputDevice() -> str:
-        # I haven't figured out how to iterate ALSA device IDs on linux, because I'm not using it on my main computer, so we default to the default input device.
-        # Feel free to make a PR to add this if you know how to.
         if platform.system() == "Windows":
             #Code to enumerate input devices adapted from https://github.com/AndreMiras/pycaw/issues/50#issuecomment-981069603
             devices = list()
@@ -134,10 +132,16 @@ class AzureProvider(SpeechRecProvider):
             chosenDevice = helper.choose_from_list_of_strings("Please select an input device.", deviceNames)
             chosenDevice = chosenDevice[chosenDevice.find(" - ID: ")+len(" - ID: "):]
             return chosenDevice
-        else:
-            print("I don't use linux/macOS on my main system so I haven't figured out how to select an input device on those platforms for azure.")
-            print("Sticking with the default input device.")
-            raise NotImplementedError("")
+        elif platform.system() == "Linux":
+            #Luckily portaudio includes the ALSA device IDs as part of the device name.
+            inputInfo = helper.select_portaudio_device("input")
+            #HDA Intel PCH: HDMI 6 (hw:0,12)
+            inputName = inputInfo["name"]
+            nameStart = inputName.find("(hw:")
+            nameEnd = inputName.find(")",nameStart)+1
+            alsaName = inputName[nameStart:nameEnd]
+            print("Alsa device name: " + alsaName)
+            return alsaName
 
     def recognize_loop(self):
         try:
