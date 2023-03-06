@@ -38,6 +38,7 @@ defaultConfig: dict[str, str | int] = {
                 "repunc_model_path": ""
             },
             "WhisperProvider": {
+                "api_key":"",
                 "pause_time": 0.8,
                 "energy_threshold": 300,
                 "dynamic_energy_threshold": True

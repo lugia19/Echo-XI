@@ -5,7 +5,7 @@ import threading
 import speech_recognition as sr
 import tempfile
 import whisper.tokenizer
-
+import openai
 import helper
 from speechRecognition.__SpeechRecProviderAbstract import SpeechRecProvider
 import whisper
@@ -15,17 +15,21 @@ class WhisperProvider(SpeechRecProvider):
         super().__init__()
         self.type = "whisper"
 
-        modelOptions = ["Base (1GB)","Small (2GB)","Medium (5GB)", "Large (10GB)"]
-        chosenModel = helper.choose_from_list_of_strings("Here are the available whisper models alongside their VRAM requirements. Please choose one.", modelOptions)
-        if "Large" not in chosenModel:
-            self.useMultiLingual = helper.choose_yes_no("Are you going to be speaking languages other than english?")
-        else:
-            self.useMultiLingual = True
-        modelBaseName = chosenModel[:chosenModel.find(" ")].lower() + ("" if self.useMultiLingual else ".en")
-        print("Chosen model name: " + modelBaseName)
+        options = ["Run the model locally", "Use the paid API"]
+        chosenOption = helper.choose_from_list_of_strings("Please choose one.", options)
+        self.runLocal = options.index(chosenOption) == 0
 
+        if self.runLocal:
+            modelOptions = ["Base (1GB)","Small (2GB)","Medium (5GB)", "Large (10GB)"]
+            chosenModel = helper.choose_from_list_of_strings("Here are the available whisper models alongside their VRAM requirements. Please choose one.", modelOptions)
+            if "Large" not in chosenModel:
+                self.useMultiLingual = helper.choose_yes_no("Are you going to be speaking languages other than english?")
+            else:
+                self.useMultiLingual = True
+            modelBaseName = chosenModel[:chosenModel.find(" ")].lower() + ("" if self.useMultiLingual else ".en")
+            print("Chosen model name: " + modelBaseName)
 
-        self.model = whisper.load_model(modelBaseName)
+            self.model = whisper.load_model(modelBaseName)
 
         #Choose a mic.
         self.microphoneInfo = helper.select_portaudio_device("input")
@@ -35,7 +39,12 @@ class WhisperProvider(SpeechRecProvider):
         self.recognizer = sr.Recognizer()
         configData = helper.get_provider_config(self)
 
-        if helper.choose_yes_no("Would you like to edit the voice detection settings for whisper?"):
+        if not self.runLocal:
+            if configData["api_key"] == "":
+                configData["api_key"] = input("Please input your openAI API key.")
+            openai.api_key = configData["api_key"]
+
+        if helper.choose_yes_no("Would you like to edit the voice detection settings?"):
             options = ["Pause time (How long in seconds you have to pause before a sentence is considered over)",
                        "Energy threshold (How loud you need to be in order for your voice to be detected)",
                        "Dynamic energy threshold (Whether the energy threshold changes based on the detected background noise)"]
@@ -53,27 +62,30 @@ class WhisperProvider(SpeechRecProvider):
                     print("The value is currently " + str(configData["energy_threshold"]))
                     configData["energy_threshold"] = helper.choose_int("Enter the new value.", 0, 999)
                 finishedEditing = helper.choose_yes_no("Are you finished editing the settings?")
-            helper.update_provider_config(self, configData)
+        helper.update_provider_config(self, configData)
 
-        self.languageOverride = ""
 
-        if self.useMultiLingual:
-            if helper.choose_yes_no("Would you like to manually choose which language you'll be speaking? (This means you will only be able to use this language)"):
-                if helper.choose_yes_no("Would you like to view a list of supported languages?"):
-                    print("Supported languages:")
-                    print("Two letter code: Language name")
-                    for key, value in whisper.tokenizer.LANGUAGES.items():
-                        print(key + ": " + value)
 
-                langCodes = whisper.tokenizer.LANGUAGES.keys()
-                langNames = whisper.tokenizer.LANGUAGES.values()
-                chosenLanguage = ""
-                while chosenLanguage == "":
-                    chosenLanguage = input("Please specify the language, either by its name or its two letter code (ex: italian or it for italian.)")
-                    if chosenLanguage not in langCodes and chosenLanguage not in langNames:
-                        print("Language not found! Maybe you spelled it wrong?")
-                        chosenLanguage = ""
-                self.languageOverride = chosenLanguage
+        if self.runLocal:
+            self.languageOverride = ""
+            if self.useMultiLingual:
+                if helper.choose_yes_no("Would you like to manually choose which language you'll be speaking? \n"
+                                        "This means you will only be able to use this language, but it may help in cases where your language is being confused for another."):
+                    if helper.choose_yes_no("Would you like to view a list of supported languages?"):
+                        print("Supported languages:")
+                        print("Two letter code: Language name")
+                        for key, value in whisper.tokenizer.LANGUAGES.items():
+                            print(key + ": " + value)
+
+                    langCodes = whisper.tokenizer.LANGUAGES.keys()
+                    langNames = whisper.tokenizer.LANGUAGES.values()
+                    chosenLanguage = ""
+                    while chosenLanguage == "":
+                        chosenLanguage = input("Please specify the language, either by its name or its two letter code (ex: italian or it for italian.)")
+                        if chosenLanguage not in langCodes and chosenLanguage not in langNames:
+                            print("Language not found! Maybe you spelled it wrong?")
+                            chosenLanguage = ""
+                    self.languageOverride = chosenLanguage
 
         self.recognizer.pause_threshold = configData["pause_time"]
         self.recognizer.energy_threshold = configData["energy_threshold"]
@@ -115,16 +127,21 @@ class WhisperProvider(SpeechRecProvider):
             audioTempFile = self.audioQueue.get()
             audioFilePath = audioTempFile.name
             audioTempFile.close()
-            if self.useMultiLingual:
-                if self.languageOverride != "":
-                    result = self.model.transcribe(audioFilePath, language=self.languageOverride)
-                else:
-                    result = self.model.transcribe(audioFilePath)
+            if self.runLocal:
+                if self.useMultiLingual:
+                    if self.languageOverride != "":
+                        result = self.model.transcribe(audioFilePath, language=self.languageOverride)
+                    else:
+                        result = self.model.transcribe(audioFilePath)
 
+                else:
+                    result = self.model.transcribe(audioFilePath, language="en")
+                recognizedText = result["text"].strip()
             else:
-                result = self.model.transcribe(audioFilePath, language="en")
-            recognizedText = result["text"].strip()
+                fp = open(audioFilePath,"rb")
+                recognizedText = openai.Audio.transcribe("whisper-1", fp).text
+                fp.close()
+
             print("Recognized text: " + recognizedText)
             self.resultQueue.put(recognizedText)
-
             os.remove(audioFilePath)

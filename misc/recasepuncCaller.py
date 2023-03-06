@@ -10,19 +10,41 @@ def recasepunc_setup(overrideRepuncModelPath=None):
 
     if overrideRepuncModelPath is None or overrideRepuncModelPath == "":
         print("Recase model path not set in config, checking if there is one in the working directory...")
-        eligibleDirectories = list()
-        for directory in os.listdir(os.getcwd()):
-            if os.path.isdir(directory) and "vosk-recasepunc-" in directory:
-                eligibleDirectories.append(directory)
-        if len(eligibleDirectories) == 0:
+        eligibleDirectoriesAndfiles = list()
+        modelsDir = os.path.join("models","recasepunc")
+        if not os.path.exists("models"):
+            os.mkdir("models")
+
+        if not os.path.exists(modelsDir):
+            os.mkdir(modelsDir)
+
+        for directory in os.listdir(modelsDir):
+            eligibleDirectoriesAndfiles.append(os.path.join(modelsDir,directory))
+
+        if len(eligibleDirectoriesAndfiles) == 0:
             print("Could not automatically determine location of recasepunc model, please either put it in the same directory as the script or set the location in config.json")
+            if helper.choose_yes_no("Would you like to open the two download pages for recasepunc models in your browser?"):
+                import webbrowser
+                webbrowser.open("https://alphacephei.com/vosk/models", new=2, autoraise=True)
+                webbrowser.open("https://github.com/benob/recasepunc", new=2, autoraise=True)
             exit()
-        elif len(eligibleDirectories) == 1:
-            repuncModelPath = eligibleDirectories[0]
-            repuncModelPath = os.path.join(repuncModelPath, "checkpoint")
+        elif len(eligibleDirectoriesAndfiles) == 1:
+            repuncModelPath = eligibleDirectoriesAndfiles[0]
         else:
-            repuncModelPath = helper.choose_from_list_of_strings("Found multiple eligible repunc models.", eligibleDirectories)
-            repuncModelPath = os.path.join(repuncModelPath, "checkpoint")
+            repuncModelPath = helper.choose_from_list_of_strings("Found multiple eligible repunc models.", eligibleDirectoriesAndfiles)
+
+        if os.path.isdir(repuncModelPath):
+            filesInDir = os.listdir(repuncModelPath)
+            if "checkpoint" in filesInDir:
+                repuncModelPath = os.path.join(repuncModelPath, "checkpoint")
+            else:
+                if len(filesInDir) == 1:
+                    repuncModelPath = os.path.join(repuncModelPath, filesInDir[0])
+                else:
+                    print("Could not automatically determine which file in this directory is the model.")
+                    chosenFile = helper.choose_from_list_of_strings("Please select one.",filesInDir)
+                    repuncModelPath = os.path.join(repuncModelPath, chosenFile)
+
     else:
         repuncModelPath = overrideRepuncModelPath
 

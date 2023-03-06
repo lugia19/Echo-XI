@@ -48,6 +48,9 @@ class VoskProvider(SpeechRecProvider):
                 eligibleDirectories.append(os.path.join(voskModelsDir, directory))
         if len(eligibleDirectories) == 0:
             print("Could not automatically determine location of vosk model, please either put it in the same directory as the script or set the location in config.json")
+            if helper.choose_yes_no("Would you like to open the download page for vosk models in your browser?"):
+                import webbrowser
+                webbrowser.open("https://alphacephei.com/vosk/models", new=2, autoraise=True)
             exit()
         elif len(eligibleDirectories) == 1:
             voskModelPath = eligibleDirectories[0]
