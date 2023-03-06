@@ -1,4 +1,6 @@
-# Info
+# Speech to text to speech using various speech recognition providers
+
+## Info
 
 The main goal of the project is to offer speech to text to speech.
 
