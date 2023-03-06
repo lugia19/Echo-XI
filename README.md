@@ -1,11 +1,22 @@
-CURRENTLY DOING A REWRITE, A LOT OF THIS IS PROBABLY WRONG. SORRY.
+# Info
 
-# Speech to text to speech
-Allows speech2speech with elevenlabs' TTS, using the `elevenlabslib` module.
+The main goal of the project is to offer speech to text to speech.
 
-Optionally uses [recasepunc](https://github.com/benob/recasepunc) to add punctuation and casing to improve the AI output.
+It offers three separate speech recognition services:
+- Vosk, with [recasepunc](https://github.com/benob/recasepunc) to add punctuation
+- Azure speech recognition
+- Whisper, both running locally and through openAI's API
 
-Can synchronize the detected voice with an OBS text source using [obsws-python](https://pypi.org/project/obsws-python/).
+In addition, it automatically translates the output into English, if the user is speaking a different language.
+Each speech recognition provider has different language support, so be sure to read the details.
+
+Translation is provided via either DeepL for supported languages, or Google Translate.
+
+The recognized and translated text is then sent to a TTS provider, of which two are supported:
+- Elevenlabs, through the `elevenlabslib` module, a high quality but paid online TTS service
+- pyttsx3, a low quality TTS that runs locally.
+
+The project also allows you to synchronize the detected text with an OBS text source using [obsws-python](https://pypi.org/project/obsws-python/).
 
 ## Installation and usage
 
@@ -13,34 +24,47 @@ Warning: Python 3.11 is still not fully supported by pytorch (but it should work
 
 Before anything else: you'll need to have ffmpeg in your $PATH. You can follow [this tutorial](https://phoenixnap.com/kb/ffmpeg-windows) if you're on windows
 
-Clone the repo: `git clone https://github.com/lugia19/speechToSpeechElevenLabs.git`
+Additionally, if you're on linux, you'll need to make sure portaudio is installed.
 
-Create a venv (highly recommended): `python -m venv venv`
+1) Clone the repo: `git clone https://github.com/lugia19/speechToSpeechElevenLabs.git`
 
-Activate the venv: `venv\Scripts\activate`
+2) Create a venv: `python -m venv venv`
 
-If you did it correctly, there should be (venv) at the start of the command line.
+3) Activate the venv: `venv\Scripts\activate`
 
-Install the requirements: `pip install -r requirements.txt`
+4) If you did it correctly, there should be (venv) at the start of the command line.
 
-Download a vosk model and a recasepunc model (I personally also use the vosk one for recasepunc).
-They can be found at [here](https://alphacephei.com/vosk/models). For english I use `vosk-model-en-us-0.22` and `vosk-recasepunc-en-0.22`. Recasepunc is optional, but highly recommended to improve the output.
+5) Install the requirements: `pip install -r requirements.txt`
 
-Place them both in the same directory as speech2speech.py. The resulting directory structure should be something like this:
+6) Run it and follow the instructions.
 
+
+
+If you're looking to use the vosk/recasepunc speech recognition, you will need to download the necessary models.
+
+Vosk models can be found [here](https://alphacephei.com/vosk/models). The same page also offers some recasepunc models. For additional ones, you can look in the recasepunc repo.
+
+For english I use `vosk-model-en-us-0.22` and `vosk-recasepunc-en-0.22`. Recasepunc is technically optional when using vosk, but highly recommended to improve the output.
+
+The script looks for models under the models/vosk and models/recasepunc folders.
+
+A typical folder structure would look something like this (recasepunc models can either be in their own folder or by themselves, depending on which source you download them from. Both are supported.):
 ```
-venv
-vosk-model-en-us-0.22
-vosk-recasepunc-en-0.22
-speech2speech.py
+-misc
+-models
+    -vosk
+        -vosk-model-en-us-0.22
+        -vosk-model-it-0.22
+    -recasepunc
+        -vosk-recasepunc-en-0.22
+        it.22000
+-speechRecognition
+-ttsProviders
+helper.py
+speechToSpeech.py
 ```
 
-Run the script. It will ask you your API key (if you would like for it to not ask, you can add it to the config.json file) and for you to choose a voice to use. 
+For everything else, simply run the script and follow the instructions.
 
-In addition, it will try to find the vosk models in the current directory. Everything should work fine if you followed the previous steps.
-
-It will also prompt you asking if you would like to change your OBS-websocket settings. These are used for the OBS integration, where the detected text can be written to a text object for live subtitles.
-
-Select your input and output and it should start, after asking you if you'd like to enable recasepunc and the OBS integration.
 
 If you would like to use the voice on something like discord, use [VB-Cable](https://vb-audio.com/Cable/). In the script select your normal microphone as input, `VB-Cable input` as the output, then on discord select `VB-Cable output` as the input. Yes, it's a little confusing.
