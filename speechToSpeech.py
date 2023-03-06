@@ -105,7 +105,7 @@ def setup():
     #Make the user choose from a provider and ensure that the config data field is present in the config file.
     availableTTSProviders:list[TTSProvider] = [ElevenlabsProvider, PyttsxProvider]
     options = ["ElevenLabs - High quality, online, paid",
-               "pyttsx3 - Low quality, local, free (ONLY OUTPUTS TO DEFAULT PLAYBACK DEVICE!)"]
+               "pyttsx3 - Low quality, local, free"]
     chosenTTSProviderClass:TTSProvider = availableTTSProviders[options.index(helper.choose_from_list_of_strings("Please choose a TTS provider.", options))]
 
     helper.ttsProvider = chosenTTSProviderClass()

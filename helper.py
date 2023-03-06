@@ -166,6 +166,8 @@ def get_provider_config(provider: SpeechRecProvider | TTSProvider) -> dict[str, 
         providerType = "text_to_speech_config"
     elif SpeechRecProvider in provider.__class__.__bases__:
         providerType = "speech_recognition_config"
+    else:
+        raise ValueError("Provider does not inherit from either SpeechRecProvider nor TTSProvider!")
 
     if providerType not in _configData:
         _configData[providerType] = dict()
@@ -200,13 +202,17 @@ def select_portaudio_device(deviceType:str, alsaOnly=False):
         raise ValueError("Invalid audio device type.")
     pyABackend = pyaudio.PyAudio()
     hostAPIinfo = None
-    if platform.system() == "Windows":
-        for i in range(pyABackend.get_host_api_count()):
-            apiInfo = pyABackend.get_host_api_info_by_index(i)
-            if "WASAPI" in apiInfo["name"]:
-                hostAPIinfo = apiInfo
-                break
-    elif platform.system() == "Linux":
+    #This section of code was useful when I was trying to use WASAPI loopback devices.
+    #Right now it's actively harmful as WASAPI is a lot more limited with sample rates, which is why it's commented out.
+
+    #if platform.system() == "Windows":
+    #    for i in range(pyABackend.get_host_api_count()):
+    #        apiInfo = pyABackend.get_host_api_info_by_index(i)
+    #        if "WASAPI" in apiInfo["name"]:
+    #            hostAPIinfo = apiInfo
+    #            break
+
+    if platform.system() == "Linux":
         for i in range(pyABackend.get_host_api_count()):
             apiInfo = pyABackend.get_host_api_info_by_index(i)
             if "ALSA" in apiInfo["name"]:
