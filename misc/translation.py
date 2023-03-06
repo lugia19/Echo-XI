@@ -25,10 +25,7 @@ def translate_if_needed(text:str, language:str) -> str:
         print("Detected language with googletrans: " + language)
 
     language = language.lower()  # Ensure it's in lowercase.
-    if "-" in language:
-        print("Detected a language in BCP-47 format, converting to ISO-639...")
-        language = language[:language.index("-")]
-        print("ISO-639 language ID: "+ language)
+
     if language == "en":
         return text
 
@@ -38,10 +35,21 @@ def translate_if_needed(text:str, language:str) -> str:
         for lang in supportedLanguages:
             supportedLanguageCodes.append(lang.code.lower())
 
-        if language in supportedLanguageCodes:
+        if language in supportedLanguageCodes or ("-" in language and language[:language.index("-")] in supportedLanguageCodes):
             print("Translating text using deepl...")
             result = deeplTranslator.translate_text(text, target_lang="EN-US")
             return result.text
+
     print("Translating text using googletrans...")
-    result = googleTranslator.translate(text, dest="en", src=language)
-    return result.text
+    if language not in googletrans.LANGCODES:
+        if "-" in language and language[:language.index("-")] in googletrans.LANGCODES:
+            language = language[:language.index("-")]
+            result = googleTranslator.translate(text, dest="en", src=language)
+            return result.text
+        else:
+            result = googleTranslator.translate(text, dest="en")
+            return result.text
+    else:
+        result = googleTranslator.translate(text, dest="en", src=language)
+        return result.text
+
