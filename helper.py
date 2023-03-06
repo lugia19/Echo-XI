@@ -19,12 +19,15 @@ subtitlesEnabled = False
 chosenOutput = -1
 
 
-defaultConfig: dict[str, str | int] = {
+defaultConfig: dict[str, str | int| list|float] = {
         "is_post_refactoring" : True,
         "obs_settings": {
             "obs_password": "",
             "obs_port": 4455,
             "obs_host": "localhost"
+        },
+        "deepl_settings": {
+            "api_key":""
         },
         "text_to_speech_config": {
             "ElevenlabsProvider": {
@@ -40,24 +43,25 @@ defaultConfig: dict[str, str | int] = {
             "WhisperProvider": {
                 "api_key":"",
                 "pause_time": 0.8,
-                "energy_threshold": 300,
+                "energy_threshold": 250,
                 "dynamic_energy_threshold": True
             },
             "AzureProvider": {
                 "speech_key" : "",
-                "service_region": ""
+                "service_region": "",
+                "language_list": []
             }
         }
 }
 
 _configData:dict = {}
 
-def choose_yes_no(prompt) -> bool:
+def choose_yes_no(prompt: str, trueOption: str = "Yes", falseOption: str = "No") -> bool:
     print(prompt)
-    userInput = ""
-    while len(userInput) == 0 or (userInput[0].lower() != "y" and userInput[0].lower() != "n"):
-        userInput = input("y/n?")
-    return userInput[0].lower() == "y"
+    while True:
+        userInput = input(trueOption + " or " + falseOption + "?")
+        if (trueOption.lower().find(userInput.lower()) == 0) ^ (falseOption.lower().find(userInput.lower()) == 0):
+            return trueOption.lower().find(userInput.lower()) == 0
 
 def choose_int(prompt, minValue, maxValue) -> int:
     print(prompt)
@@ -129,16 +133,34 @@ def _edit_config_property_recursive(dictToChooseFrom:dict):
         if key != "is_post_refactoring":
             options.append(key[0].upper() + key[1:].replace("_", " "))
     chosenOption = choose_from_list_of_strings("Which one would you like to edit?", options)
-    chosenKey = chosenOption.lower().replace(" ", "_")
+    if chosenOption not in dictToChooseFrom:
+        chosenKey = (chosenOption[0].lower() + chosenOption[1:]).replace(" ", "_")
+    else:
+        chosenKey = chosenOption
     chosenProperty = dictToChooseFrom[chosenKey]
 
     if type(chosenProperty) == str:
         dictToChooseFrom[chosenKey] = input("Please input the new value for " + chosenOption + " (current value:" +chosenProperty+")")
         update_config_file()
-    else:
+    elif type(chosenProperty) == list:
+        while True:
+            chosenProperty = dictToChooseFrom[chosenKey]
+            print("The current value of " + chosenOption + " is " + str(chosenProperty))
+            if len(chosenProperty) == 0:
+                addOrRemove = True
+            else:
+                addOrRemove = choose_yes_no("Would you like to add or remove an item from the list?", trueOption="Add", falseOption="Remove")
+            if addOrRemove:
+                dictToChooseFrom[chosenKey].append(input("Please input the new item."))
+            else:
+                dictToChooseFrom[chosenKey].remove(choose_from_list_of_strings("Please choose which item to remove.",chosenProperty))
+            if not choose_yes_no("Would you like to continue editing the list?"):
+                break
+        update_config_file()
+    elif type(chosenProperty) == dict:
         _edit_config_property_recursive(chosenProperty)
 
-def get_provider_config(provider: SpeechRecProvider | TTSProvider) -> dict[str, str|float|bool|int]:
+def get_provider_config(provider: SpeechRecProvider | TTSProvider) -> dict[str, str|float|bool|int|list]:
 
     if type(provider) == TTSProvider:
         providerType = "text_to_speech_config"
@@ -167,6 +189,9 @@ def update_provider_config(provider: SpeechRecProvider | TTSProvider, providerCo
 
 def get_obs_config():
     return _configData["obs_settings"]
+
+def get_deepl_config():
+    return _configData["deepl_settings"]
 def select_portaudio_device(deviceType:str):
     """
     Makes the user choose an input or output device and returns that device's info.

@@ -2,7 +2,7 @@ import os
 from misc.recasepunc import CasePuncPredictor, WordpieceTokenizer
 import helper
 predictor:CasePuncPredictor
-def recasepunc_setup(overrideRepuncModelPath=None):
+def recasepunc_setup(languageCode, overrideRepuncModelPath=None):
     repuncModelPath = ""
 
     #This variable only exists to make pycharm figure out that the import is used.
@@ -31,7 +31,12 @@ def recasepunc_setup(overrideRepuncModelPath=None):
         elif len(eligibleDirectoriesAndfiles) == 1:
             repuncModelPath = eligibleDirectoriesAndfiles[0]
         else:
-            repuncModelPath = helper.choose_from_list_of_strings("Found multiple eligible repunc models.", eligibleDirectoriesAndfiles)
+            options = []
+            for dirOrFile in eligibleDirectoriesAndfiles:
+                options.append(dirOrFile[dirOrFile.rfind("\\")+1:])
+
+            chosenOption = helper.choose_from_list_of_strings("Found multiple eligible repunc models.", options)
+            repuncModelPath = eligibleDirectoriesAndfiles[options.index(chosenOption)]
 
         if os.path.isdir(repuncModelPath):
             filesInDir = os.listdir(repuncModelPath)
@@ -49,7 +54,12 @@ def recasepunc_setup(overrideRepuncModelPath=None):
         repuncModelPath = overrideRepuncModelPath
 
     global predictor
-    predictor = CasePuncPredictor(repuncModelPath, lang="en", flavor="bert-base-uncased")
+    from misc.recasepunc import default_flavors
+    if languageCode in default_flavors.keys():
+        flavor = default_flavors[languageCode]
+    else:
+        flavor = None
+    predictor = CasePuncPredictor(repuncModelPath, lang=languageCode, flavor=flavor)
 
 def recasepunc_parse(textToParse:str) -> str:
     print("Running recasepunc...")

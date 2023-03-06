@@ -1,5 +1,6 @@
 from __future__ import annotations
 from misc.obsSubtitles import *
+from misc.translation import *
 import helper
 
 import os
@@ -12,6 +13,10 @@ from speechRecognition.__SpeechRecProviderAbstract import SpeechRecProvider
 from speechRecognition.WhisperProvider import WhisperProvider
 from speechRecognition.VoskProvider import VoskProvider
 from speechRecognition.AzureProvider import AzureProvider
+
+#The whisper API does not return language information, so we use googletrans to detect the language from the text.
+#Won't be super accurate, but it should be pretty fast.
+import googletrans
 
 #THESE IMPORTS ARE NOT UNUSED. recasepunc does some weird reflection stuff.
 from misc.recasepunc import CasePuncPredictor, WordpieceTokenizer
@@ -35,21 +40,25 @@ def main():
     srProvider.recognize_loop()
 
 
-#TODO: Make whisper and azure pass the language of the audio as part of the call to process_text.
-def process_text(recognizedText:str, language="UNKNOWN"):
-    # If you want to do anything with the text (like sending it off to chatGPT and playing back the response instead) this is where you do it.
-    if recognizedText != "":    #Ignore empty output
-        #TODO: This is where we detect if the text is NOT english. If it isn't, we translate with deepl (or googletrans if the language isn't supported by deepl or no key was provided).
 
-        helper.ttsProvider.synthesizeAndPlayAudio(recognizedText, helper.chosenOutput)
+# I'll just use googletrans in that case.
+def process_text(recognizedText:str, language):
+    # If you want to do anything with the text (like sending it off to chatGPT and playing back the response instead) this is where you do it.
+    recognizedText = recognizedText.strip()
+    if recognizedText != "":    #Ignore empty output
+        translatedText = translate_if_needed(recognizedText, language)
+        #translatedText contains the text in english.
+        print("Recognized and translated text: " + translatedText)
+        helper.ttsProvider.synthesizeAndPlayAudio(translatedText, helper.chosenOutput)
         if helper.subtitlesEnabled:
-            subtitle_update(recognizedText)
+            subtitle_update(translatedText)
     print("\nListening for voice input...\n")
 
 
 
 def setup():
     helper.setup_config()
+    translation_setup()
 
     modelDir = os.path.join(os.getcwd(),"models")
     if not os.path.isdir(modelDir):
@@ -67,9 +76,9 @@ def setup():
         print("It is required for voice detection.")
         exit(1)
 
-    print("Note: Regardless of which language you choose when initializing a speech provider, the text to speech output will ALWAYS be in english.")
-    if helper.choose_yes_no("Would you like to enable DeepL as a translation engine? You will need to provide your own API key. If you choose no, google translate will be used instead."):
-        pass        #TODO: THIS
+
+
+
 
     global srProvider
     availableSRProviders:list[SpeechRecProvider] = [VoskProvider, WhisperProvider, AzureProvider]

@@ -29,10 +29,17 @@ class VoskProvider(SpeechRecProvider):
         self.recasepuncEnabled = helper.choose_yes_no("Would you like to enable case/punctuation detection? (Improves AI voice and subtitles)")
 
         if self.recasepuncEnabled:
+            print("What language will you be speaking? Please input it as a two letter ISO_639-1 code.")
+            if helper.choose_yes_no("Would you like to open the list of ISO_639-1 codes in your browser?"):
+                import webbrowser
+                webbrowser.open("https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes", new=2, autoraise=True)
+            self.chosenLanguage = input("Please input the language code.")
+
             if vosk_config["repunc_model_path"] != "":
-                recasepunc_setup(vosk_config["repunc_model_path"])
+                recasepunc_setup(self.chosenLanguage, vosk_config["repunc_model_path"])
             else:
-                recasepunc_setup()
+                print("Note: Please make sure to select a vosk and recasepunc with the SAME LANGUAGE. Otherwise the results will be unpredictable.")
+                recasepunc_setup(self.chosenLanguage)
 
         self.microphoneInfo = helper.select_portaudio_device("input")
         self.recognizer:KaldiRecognizer = KaldiRecognizer(self.model, self.microphoneInfo["defaultSampleRate"])
@@ -55,7 +62,11 @@ class VoskProvider(SpeechRecProvider):
         elif len(eligibleDirectories) == 1:
             voskModelPath = eligibleDirectories[0]
         else:
-            voskModelPath = helper.choose_from_list_of_strings("Found multiple eligible vosk models. Please choose one.", eligibleDirectories)
+            dirNames = []
+            for directory in eligibleDirectories:
+                dirNames.append(directory[directory.rfind("\\")+1:])
+            chosenName = helper.choose_from_list_of_strings("Found multiple eligible vosk models. Please choose one.", dirNames)
+            voskModelPath = eligibleDirectories[dirNames.index(chosenName)]
         return voskModelPath
     def recognize_loop(self):
         pyABackend = pyaudio.PyAudio()
@@ -79,7 +90,7 @@ class VoskProvider(SpeechRecProvider):
                         print("Recognized text: " + recognizedText)
 
                         from speechToSpeech import process_text
-                        process_text(recognizedText)
+                        process_text(recognizedText, self.chosenLanguage)
                         print("\nListening for voice input...\n")
         except KeyboardInterrupt:
             exit("Interrupted by user.")

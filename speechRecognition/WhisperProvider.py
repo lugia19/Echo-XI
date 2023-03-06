@@ -9,6 +9,7 @@ import openai
 import helper
 from speechRecognition.__SpeechRecProviderAbstract import SpeechRecProvider
 import whisper
+import googletrans
 class WhisperProvider(SpeechRecProvider):
     #Inspired by this repo https://github.com/mallorbc/whisper_mic/blob/main/mic.py
     def __init__(self):
@@ -104,8 +105,8 @@ class WhisperProvider(SpeechRecProvider):
         try:
             while True:
                 from speechToSpeech import process_text
-                recognizedText = self.resultQueue.get()
-                process_text(recognizedText)
+                result = self.resultQueue.get()
+                process_text(result["text"], result["lang"])
         except KeyboardInterrupt:
             print("Interrupted by user.")
             self.interruptEvent.set()
@@ -127,21 +128,38 @@ class WhisperProvider(SpeechRecProvider):
             audioTempFile = self.audioQueue.get()
             audioFilePath = audioTempFile.name
             audioTempFile.close()
+
+            audioLanguage = None
+
             if self.runLocal:
                 if self.useMultiLingual:
                     if self.languageOverride != "":
+                        audioLanguage = self.languageOverride
                         result = self.model.transcribe(audioFilePath, language=self.languageOverride)
+                        recognizedText = result["text"].strip()
                     else:
-                        result = self.model.transcribe(audioFilePath)
-
+                        audio = whisper.load_audio(audioFilePath)
+                        audio = whisper.pad_or_trim(audio)
+                        mel = whisper.log_mel_spectrogram(audio).to(self.model.device)
+                        _, probs = self.model.detect_language(mel)
+                        audioLanguage = max(probs, key=probs.get)
+                        options = whisper.DecodingOptions(language=audioLanguage)
+                        result = whisper.decode(self.model, mel, options)
+                        recognizedText = result.text.strip()
                 else:
                     result = self.model.transcribe(audioFilePath, language="en")
-                recognizedText = result["text"].strip()
+                    audioLanguage = "en"
+                    recognizedText = result["text"].strip()
+
             else:
+                #The API doesn't return the detected language. Fuck.
                 fp = open(audioFilePath,"rb")
                 recognizedText = openai.Audio.transcribe("whisper-1", fp).text
                 fp.close()
 
             print("Recognized text: " + recognizedText)
-            self.resultQueue.put(recognizedText)
+            self.resultQueue.put({
+                    "text":recognizedText,
+                    "lang":audioLanguage
+                })
             os.remove(audioFilePath)
