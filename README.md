@@ -1,4 +1,4 @@
-# Speech to text to speech using various speech recognition providers
+# Speech to text to speech using various services
 
 ## Info
 
