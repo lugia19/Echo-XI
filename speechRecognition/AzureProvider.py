@@ -134,7 +134,7 @@ class AzureProvider(SpeechRecProvider):
             return chosenDevice
         elif platform.system() == "Linux":
             #Luckily portaudio includes the ALSA device IDs as part of the device name.
-            inputInfo = helper.select_portaudio_device("input")
+            inputInfo = helper.select_portaudio_device("input", alsaOnly=True)
             #HDA Intel PCH: HDMI 6 (hw:0,12)
             inputName = inputInfo["name"]
             nameStart = inputName.find("(hw:")
