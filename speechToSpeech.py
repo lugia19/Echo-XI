@@ -59,7 +59,7 @@ def process_text(recognizedText:str, language):
 def setup():
     helper.setup_config()
     translation_setup()
-
+    #Make sure the default folders exist...
     modelDir = os.path.join(os.getcwd(),"models")
     if not os.path.isdir(modelDir):
         os.mkdir(modelDir)
@@ -67,6 +67,10 @@ def setup():
     voskModelsDir = os.path.join(modelDir,"vosk")
     if not os.path.isdir(voskModelsDir):
         os.mkdir(voskModelsDir)
+
+    recasepuncModelsDir = os.path.join(modelDir, "recasepunc")
+    if not os.path.isdir(recasepuncModelsDir):
+        os.mkdir(recasepuncModelsDir)
 
     global srProvider
     availableSRProviders:list[SpeechRecProvider] = [VoskProvider, WhisperProvider, AzureProvider]
