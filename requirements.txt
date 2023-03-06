@@ -6,6 +6,8 @@ torch
 tqdm
 transformers
 
+wheel #Technically not necessary but it'll make your life easier.
+
 #Requirements for pyttsx3 TTS:
 pyttsx3
 soundfile
