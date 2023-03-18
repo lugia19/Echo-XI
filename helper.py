@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 import platform
@@ -69,7 +71,7 @@ def choose_int(prompt, minValue, maxValue) -> int:
     while not (minValue <= chosenVoiceIndex <= maxValue):
         try:
             chosenVoiceIndex = int(input("Input a number between " + str(minValue) +" and " + str(maxValue)+"\n"))
-        except:
+        except ValueError:
             print("Not a valid number.")
     return chosenVoiceIndex
 
@@ -79,7 +81,7 @@ def choose_float(prompt, minValue, maxValue) -> int:
     while not (minValue <= chosenVoiceIndex <= maxValue):
         try:
             chosenVoiceIndex = float(input("Input a number between " + str(minValue) +" and " + str(maxValue)+"\n"))
-        except:
+        except ValueError:
             print("Not a valid number.")
     return chosenVoiceIndex
 

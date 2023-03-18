@@ -33,9 +33,6 @@ def main():
         obs_config = helper.get_obs_config()
         subtitle_setup(obs_config["obs_host"], obs_config["obs_port"], obs_config["obs_password"])
 
-    chosenOutputInfo = helper.select_portaudio_device("output")
-    helper.chosenOutput = chosenOutputInfo["index"]
-
     print("\nListening for voice input...\n")
     srProvider.recognize_loop()
 
@@ -58,7 +55,10 @@ def process_text(recognizedText:str, language):
 
 def setup():
     helper.setup_config()
-    translation_setup()
+
+    chosenOutputInfo = helper.select_portaudio_device("output")
+    helper.chosenOutput = chosenOutputInfo["index"]
+
     #Make sure the default folders exist...
     modelDir = os.path.join(os.getcwd(),"models")
     if not os.path.isdir(modelDir):
@@ -109,7 +109,8 @@ def setup():
     chosenTTSProviderClass:TTSProvider = availableTTSProviders[options.index(helper.choose_from_list_of_strings("Please choose a TTS provider.", options))]
 
     helper.ttsProvider = chosenTTSProviderClass()
-    print("")
+
+    translation_setup()
 
 if __name__ == '__main__':
     setup()
