@@ -2,68 +2,97 @@ import os
 from misc.recasepunc import CasePuncPredictor, WordpieceTokenizer
 import helper
 predictor:CasePuncPredictor
-def recasepunc_setup(languageCode, overrideRepuncModelPath=None):
+def recasepunc_setup(languageCode:str) -> bool:
+    # This variable only exists to make pycharm figure out that the import is used.
+    uselessVar: WordpieceTokenizer
+
+
+    recasePuncInputs = dict()
+
+    eligibleDirectoriesAndfiles = list_recasepunc_models()
+    while len(eligibleDirectoriesAndfiles) == 0:
+        if helper.choose_yes_no("Could not find any recasepunc models in " + os.path.join(os.getcwd(), "models", "recasepunc") +
+                                "\nWould you like to open the two download pages for recasepunc models in your browser?"):
+            import webbrowser
+            webbrowser.open("https://alphacephei.com/vosk/models", new=2, autoraise=True)
+            webbrowser.open("https://github.com/benob/recasepunc", new=2, autoraise=True)
+        if not helper.choose_yes_no("Would you like to try again?"):
+            return False
+        eligibleDirectoriesAndfiles = list_recasepunc_models()
+
+
+    dirOrFileNames = list()
+    for dirOrFile in eligibleDirectoriesAndfiles:
+        dirOrFileNames.append(dirOrFile[dirOrFile.rfind("\\")+1:])
+
+    recasePuncModelInput = {
+        "widget_type": "list",
+        "label": "Recasepunc model",
+        "options": dirOrFileNames
+    }
+
+    recasePuncEnabledInput = {
+        "widget_type": "checkbox",
+        "label": "Enable recasepunc"
+    }
+
+    recasePuncInputs["model_path"] = recasePuncModelInput
+    recasePuncInputs["enabled"] = recasePuncEnabledInput
+
+    configData = helper.get_recasepunc_config()
+
+    userInputs = helper.ask_fetch_from_and_update_config(recasePuncInputs, configData)
+
+    if not userInputs["enabled"]:
+        return False #Exit immediately
+
+    recasePuncDirOrFile = os.path.join("models", "recasepunc", userInputs["model_path"])
     repuncModelPath = ""
-
-    #This variable only exists to make pycharm figure out that the import is used.
-    uselessVar:WordpieceTokenizer
-
-    if overrideRepuncModelPath is None or overrideRepuncModelPath == "":
-        modelsDir = os.path.join("models", "recasepunc")
-        print("Recase model path not set in config, checking if there is one in " + modelsDir + "...")
-        eligibleDirectoriesAndfiles = list()
-
-        if not os.path.exists("models"):
-            os.mkdir("models")
-
-        if not os.path.exists(modelsDir):
-            os.mkdir(modelsDir)
-
-        for directory in os.listdir(modelsDir):
-            eligibleDirectoriesAndfiles.append(os.path.join(modelsDir,directory))
-
-        if len(eligibleDirectoriesAndfiles) == 0:
-            print("Could not automatically determine location of recasepunc model, please either put it in the same directory as the script or set the location in config.json")
-            if helper.choose_yes_no("Would you like to open the two download pages for recasepunc models in your browser?"):
-                import webbrowser
-                webbrowser.open("https://alphacephei.com/vosk/models", new=2, autoraise=True)
-                webbrowser.open("https://github.com/benob/recasepunc", new=2, autoraise=True)
-            exit()
-        elif len(eligibleDirectoriesAndfiles) == 1:
-            repuncModelPath = eligibleDirectoriesAndfiles[0]
+    if os.path.isdir(recasePuncDirOrFile):
+        filesInDir = os.listdir(recasePuncDirOrFile)
+        if "checkpoint" in filesInDir:
+            repuncModelPath = os.path.join(recasePuncDirOrFile, "checkpoint")
         else:
-            options = []
-            for dirOrFile in eligibleDirectoriesAndfiles:
-                options.append(dirOrFile[dirOrFile.rfind("\\")+1:])
-
-            chosenOption = helper.choose_from_list_of_strings("Found multiple eligible repunc models.", options)
-            repuncModelPath = eligibleDirectoriesAndfiles[options.index(chosenOption)]
-
-        if os.path.isdir(repuncModelPath):
-            filesInDir = os.listdir(repuncModelPath)
-            if "checkpoint" in filesInDir:
-                repuncModelPath = os.path.join(repuncModelPath, "checkpoint")
+            if len(filesInDir) == 1:
+                repuncModelPath = os.path.join(recasePuncDirOrFile, filesInDir[0])
             else:
-                if len(filesInDir) == 1:
-                    repuncModelPath = os.path.join(repuncModelPath, filesInDir[0])
-                else:
-                    print("Could not automatically determine which file in this directory is the model.")
-                    chosenFile = helper.choose_from_list_of_strings("Please select one.",filesInDir)
-                    repuncModelPath = os.path.join(repuncModelPath, chosenFile)
-
-    else:
-        repuncModelPath = overrideRepuncModelPath
+                chooseFileInput = {
+                    "model_file": {
+                        "widget_type": "list",
+                        "options": filesInDir,
+                        "label": "Please select which file is the actual mode."
+                    }
+                }
+                chosenFile = helper.ask_fetch_from_and_update_config(chooseFileInput, configData)["model_file"]
+                repuncModelPath = os.path.join(recasePuncDirOrFile, chosenFile)
 
     global predictor
-
-    print("Found a model. Initializing CasePuncPredictor...")
-
     from misc.recasepunc import default_flavors
     if languageCode in default_flavors.keys():
         flavor = default_flavors[languageCode]
     else:
         flavor = None
     predictor = CasePuncPredictor(repuncModelPath, lang=languageCode, flavor=flavor)
+
+    return True
+def list_recasepunc_models() -> list[str]:
+    modelsDir = os.path.join("models", "recasepunc")
+    eligibleDirectoriesAndfiles = list()
+    if not os.path.exists("models"):
+        os.mkdir("models")
+    if not os.path.exists(modelsDir):
+        os.mkdir(modelsDir)
+    for directory in os.listdir(modelsDir):
+        eligibleDirectoriesAndfiles.append(os.path.join(modelsDir, directory))
+
+    if len(eligibleDirectoriesAndfiles) == 0:
+        if helper.choose_yes_no("Could not automatically determine location of recasepunc model, please put it in " + modelsDir +
+                                "\nWould you like to open the two download pages for recasepunc models in your browser?"):
+            import webbrowser
+            webbrowser.open("https://alphacephei.com/vosk/models", new=2, autoraise=True)
+            webbrowser.open("https://github.com/benob/recasepunc", new=2, autoraise=True)
+        exit()
+    return eligibleDirectoriesAndfiles
 
 def recasepunc_parse(textToParse:str) -> str:
     print("Running recasepunc...")

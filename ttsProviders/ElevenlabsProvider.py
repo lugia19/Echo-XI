@@ -3,6 +3,7 @@ import queue
 import threading
 import wave
 
+import requests.exceptions
 from elevenlabslib import ElevenLabsUser
 
 import helper
@@ -17,27 +18,42 @@ class ElevenlabsProvider(TTSProvider):
 
         configData = helper.get_provider_config(self)
 
-        if configData["api_key"] == "":
-            configData["api_key"] = input("Please input your elevenlabs API key. It can be found on the site, under profile.")
+        apiKeyInput = {
+            "api_key":
+                {
+                    "widget_type": "textbox",
+                    "label": "Elevenlabs API Key",
+                    "hidden": True
+                }
+        }
 
-        user = ElevenLabsUser(configData["api_key"])
-        if configData["voice_id"] == "":
-            voiceList = user.get_available_voices()
 
-            print("Voices available:")
-            for voice in voiceList:
-                print(str(voiceList.index(voice) + 1) + ") " + voice.initialName + " (" + voice.voiceID + ")")
-            chosenVoiceIndex = -1
-            while not (0 <= chosenVoiceIndex < len(voiceList)):
-                try:
-                    chosenVoiceIndex = int(input("Please choose a number.\n")) - 1
-                except ValueError:
-                    print("Not a valid number.")
-            if helper.choose_yes_no("Would you like to save this voice in the config and skip having to choose one in the future?"):
-                configData["voice_id"] = voiceList[chosenVoiceIndex].voiceID
-            self.ttsVoice = voiceList[chosenVoiceIndex]
-        else:
-            self.ttsVoice = user.get_voice_by_ID(configData["voice_id"])
+        while True:
+            helper.ask_fetch_from_and_update_config(apiKeyInput, configData)
+
+            user = ElevenLabsUser(configData["api_key"])
+            try:
+                 voiceList = user.get_available_voices()
+                 break
+            except requests.exceptions.HTTPError:
+                if not helper.choose_yes_no("Error! API Key incorrect or expired. Try again?"):
+                    exit()
+
+        voiceStringList = list()
+        for voice in voiceList:
+            voiceStringList.append(voice.initialName + " (" + voice.voiceID + ")")
+
+        voiceInput = {
+            "voice_id": {
+                "widget_type": "list",
+                "label": "Choose a voice",
+                "options": voiceStringList
+            }
+        }
+
+        voiceID = helper.ask_fetch_from_and_update_config(voiceInput, configData)["voice_id"]
+        voiceID = voiceID[voiceID.find("(")+1:voiceID.find(")")]
+        self.ttsVoice = user.get_voice_by_ID(voiceID)
 
         helper.update_provider_config(self, configData)
         threading.Thread(target=self.waitForPlaybackReady).start()

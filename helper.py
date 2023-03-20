@@ -4,7 +4,13 @@ import json
 import os
 import platform
 from typing import Mapping
+import tkinter as tk
+from tkinter import ttk
 
+backgroundColor = "#2b2b2b"
+buttonBackground = "#424242"
+foregroundColor = "white"
+useGUI = True
 
 #if platform.system() == "Windows":
 #    import pyaudiowpatch as pyaudio
@@ -23,10 +29,20 @@ chosenOutput = -1
 
 defaultConfig: dict[str, str | int| list|float] = {
         "is_post_refactoring" : True,
+        "misc_settings": {
+            "output_device":"",
+            "speech_provider":"",
+            "tts_provider":""
+        },
         "obs_settings": {
             "obs_password": "",
             "obs_port": 4455,
             "obs_host": "localhost"
+        },
+        "recasepunc_settings": {
+            "model_path": "",
+            "enabled": True,
+            "language": ""
         },
         "deepl_settings": {
             "api_key":""
@@ -39,8 +55,7 @@ defaultConfig: dict[str, str | int| list|float] = {
         },
         "speech_recognition_config":{
             "VoskProvider": {
-                "model_path": "",
-                "repunc_model_path": ""
+                "model_path": ""
             },
             "WhisperProvider": {
                 "api_key":"",
@@ -59,11 +74,45 @@ defaultConfig: dict[str, str | int| list|float] = {
 _configData:dict = {}
 
 def choose_yes_no(prompt: str, trueOption: str = "Yes", falseOption: str = "No") -> bool:
-    print(prompt)
-    while True:
-        userInput = input(trueOption + " or " + falseOption + "?")
-        if (trueOption.lower().find(userInput.lower()) == 0) ^ (falseOption.lower().find(userInput.lower()) == 0):
-            return trueOption.lower().find(userInput.lower()) == 0
+    if useGUI:
+        def on_yes_click():
+            result[0] = True
+            window.destroy()
+
+        def on_no_click():
+            result[0] = False
+            window.destroy()
+
+        # Initialize window
+        window = tk.Tk()
+        window.title("Question")
+        window.configure(bg="#2b2b2b")
+        setup_style(window, backgroundColor, buttonBackground,foregroundColor)
+        # Create and set a style
+        style = ttk.Style()
+        # Create and place the prompt label
+        prompt_label = ttk.Label(window, text=prompt, wraplength=300)
+        prompt_label.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+
+        # Create and place the yes button
+        yes_button = ttk.Button(window, text=trueOption, command=on_yes_click)
+        yes_button.grid(row=1, column=0, padx=10, pady=10)
+
+        # Create and place the no button
+        no_button = ttk.Button(window, text=falseOption, command=on_no_click)
+        no_button.grid(row=1, column=1, padx=10, pady=10)
+
+        # Center the window
+        window.eval('tk::PlaceWindow . center')
+        result = [False]
+        window.mainloop()
+        return result[0]
+    else:
+        print(prompt)
+        while True:
+            userInput = input(trueOption + " or " + falseOption + "?")
+            if (trueOption.lower().find(userInput.lower()) == 0) ^ (falseOption.lower().find(userInput.lower()) == 0):
+                return trueOption.lower().find(userInput.lower()) == 0
 
 def choose_int(prompt, minValue, maxValue) -> int:
     print(prompt)
@@ -122,12 +171,6 @@ def setup_config():
     for key, value in defaultConfig.items():
         if key not in _configData:
             _configData[key] = value
-
-
-    while choose_yes_no("Would you like to edit any of your settings?"):
-        _edit_config_property_recursive(_configData)
-
-    print("")
 
 def _edit_config_property_recursive(dictToChooseFrom:dict):
     options = list()
@@ -198,11 +241,18 @@ def update_provider_config(provider: SpeechRecProvider | TTSProvider, providerCo
 def get_obs_config():
     return _configData["obs_settings"]
 
+def get_recasepunc_config():
+    return _configData["recasepunc_settings"]
+
+
+def get_misc_config():
+    return _configData["misc_settings"]
+
 def get_deepl_config():
     return _configData["deepl_settings"]
-def select_portaudio_device(deviceType:str, alsaOnly=False):
+def get_list_of_portaudio_devices(deviceType:str, alsaOnly=False) -> list[str]:
     """
-    Makes the user choose an input or output device and returns that device's info.
+    Returns a list containing all the names of portaudio devices of the specified type.
     """
     if deviceType != "output" and deviceType != "input":
         raise ValueError("Invalid audio device type.")
@@ -238,8 +288,228 @@ def select_portaudio_device(deviceType:str, alsaOnly=False):
             else:
                 deviceNames.append(device["name"] + " - " + str(device["index"]))
 
-    chosenDeviceID = choose_from_list_of_strings("Please choose your " + deviceType + " device.", deviceNames)
-    chosenDeviceID = int(chosenDeviceID[chosenDeviceID.rfind(" - ") + 3:])
+    return deviceNames
+
+def get_portaudio_device_info_from_name(deviceName:str):
+    pyABackend = pyaudio.PyAudio()
+    chosenDeviceID = int(deviceName[deviceName.rfind(" - ") + 3:])
     chosenDeviceInfo = pyABackend.get_device_info_by_index(chosenDeviceID)
-    print("\nChosen "+deviceType+" info: " + str(chosenDeviceInfo) + "\n")
     return chosenDeviceInfo
+
+def setup_style(app, backgroundColor, buttonBackground, foregroundColor):
+    app.option_add('*TCombobox*Listbox.foreground', foregroundColor)
+    app.option_add('*TCombobox*Listbox.background', buttonBackground)
+    style = ttk.Style()
+    style.theme_use('clam')
+
+    style.configure('.', background=backgroundColor, foreground=foregroundColor)
+    style.configure('TLabel', background=backgroundColor, foreground=foregroundColor)
+    style.configure('TFrame', background=backgroundColor)
+    style.configure('TCheckbutton', background=backgroundColor, foreground=foregroundColor, fieldbackground=backgroundColor)
+    style.configure('TCombobox', selectbackground=backgroundColor, fieldbackground=backgroundColor, background=backgroundColor)
+    style.configure('TButton', background=buttonBackground, foreground=foregroundColor, bordercolor=buttonBackground)
+    style.configure('TEntry', fieldbackground=backgroundColor, foreground=foregroundColor, insertcolor=foregroundColor, insertwidth=2)
+    style.map('TCombobox',
+              fieldbackground=[('readonly', backgroundColor)],
+              selectbackground=[('readonly', backgroundColor)],
+              foreground=[('readonly', foregroundColor)])  # Set a lighter shade of gray for lines
+
+    style.map('TCheckbutton',
+              background=[('active', buttonBackground)],  # Custom background color on hover
+              foreground=[('active', foregroundColor)])  # Custom foreground (text) color on hover
+
+def ask_fetch_from_and_update_config(inputDict:dict, configData:dict):
+    for key, value in inputDict.items():
+        if key in configData and configData[key] != "":
+            value["default_value"] = configData[key]
+
+    if useGUI:
+        userInputs = _ask_ui(inputDict)
+    else:
+        userInputs = _ask_cli(inputDict)
+
+    for key, value in userInputs.items():
+        configData[key] = value
+
+    update_config_file()
+    return userInputs
+
+def show_text(message):
+    app = tk.Tk()
+    app.attributes('-alpha', 0)
+    setup_style(app, backgroundColor, buttonBackground, foregroundColor)
+    show_custom_messagebox(app, "Info", message)
+    app.destroy()
+def show_custom_messagebox(app, title, message):
+    messagebox_window = tk.Toplevel(app)
+    messagebox_window.title(title)
+    messagebox_window.configure(bg='#2b2b2b')  # Set the background color to match the dark theme
+    messagebox_window.highlightthickness = 0  # Remove the default padding
+
+    message_label = ttk.Label(messagebox_window, text=message, padding=(20, 20))
+    message_label.grid(row=0, column=0, columnspan=2)
+
+    ok_button = ttk.Button(messagebox_window, text="OK", width=10, command=messagebox_window.destroy)
+    ok_button.grid(row=1, column=0, columnspan=2, pady=(0, 20))
+
+    messagebox_window.transient(app)
+    messagebox_window.grab_set()
+    app.wait_window(messagebox_window)
+
+
+def _ask_ui(config):
+    def on_confirm():
+        result = {}
+        for key, value in config.items():
+            if value["widget_type"] == "list":
+                result[key] = value["var"].get()
+            elif value["widget_type"] == "checkbox":
+                result[key] = value["var"].get()
+            elif value["widget_type"] == "textbox":
+                if "value_type" in value:
+                    try:
+                        rawValue = value["entry"].get()
+                        if value["value_type"] == "int" or value["value_type"] == "float":
+
+                            if value["value_type"] == "int":
+                                result[key] = int(rawValue)
+                            elif value["value_type"] == "float":
+                                result[key] = float(rawValue)
+
+                            if "max_value" in value:
+                                if not result[key] <= value["max_value"]:
+                                    raise ValueError()
+                            if "min_value" in value:
+                                if not result[key] >= value["min_value"]:
+                                    raise ValueError()
+
+                        else:
+                            raise NotImplementedError("ERROR! TYPE CHECKING FOR "+value["value_type"]+" NOT IMPLEMENTED!")
+                    except ValueError as e:
+                        show_custom_messagebox(app, "Error!","Could not convert input " + key + " to " + value["value_type"] + ", please double check that your input is formatted correctly!")
+                        raise e
+                else:
+                    result[key] = value["entry"].get()
+
+        app.destroy()
+        return result
+
+
+    def on_combobox_selection_changed(event, combobox_key):
+        selected_index = config[combobox_key]["combobox"].current()
+        if "descriptions" in config[combobox_key]:
+            config[combobox_key]["description_text"].config(state=tk.NORMAL)
+            config[combobox_key]["description_text"].delete(1.0, tk.END)
+            config[combobox_key]["description_text"].insert(tk.END, config[combobox_key]["descriptions"][selected_index])
+            config[combobox_key]["description_text"].config(state=tk.DISABLED)
+
+    def on_checkbox_clicked(checkbox_key):
+        currValue = config[checkbox_key]["var"].get()
+        if currValue:
+            show_custom_messagebox(app, "Info", config[checkbox_key]["description"])
+
+    app = tk.Tk()
+    app.title("Settings")
+    setup_style(app, backgroundColor, buttonBackground, foregroundColor)
+    # (Place the dark theme configuration code here)
+
+    frame = ttk.Frame(app, padding="10")
+    frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+    row = 0
+    for key, value in config.items():
+        if value["widget_type"] == "list":
+            label = ttk.Label(frame, text=value["label"])
+            label.grid(row=row, column=0, sticky=tk.W)
+
+            value["var"] = tk.StringVar()
+            combobox = ttk.Combobox(frame, width=60, textvariable=value["var"], values=value["options"], state="readonly")
+            if "default_value" in value:
+                try:
+                    default_index = value["options"].index(value["default_value"])
+                except ValueError:
+                    default_index = 0
+            else:
+                default_index = 0
+
+            combobox.current(default_index)
+            combobox.grid(row=row, column=1, sticky=(tk.W, tk.E))
+            value["combobox"] = combobox
+            combobox.bind("<<ComboboxSelected>>", lambda event, k=key: on_combobox_selection_changed(event, k))
+
+            if "descriptions" in value:
+                description_text = tk.Text(frame, height=15, width=60, wrap=tk.WORD, background='#2b2b2b', foreground='white')
+                description_text.grid(row=row + 1, column=1, sticky=(tk.W, tk.E))
+                description_text.insert(tk.END, value["descriptions"][default_index])
+                description_text.config(state=tk.DISABLED)
+                value["description_text"] = description_text
+                row += 1
+
+        elif value["widget_type"] == "checkbox":
+            value["var"] = tk.BooleanVar()
+            checkbutton = ttk.Checkbutton(frame, text=value["label"], variable=value["var"])
+            checkbutton.grid(row=row, columnspan=2, sticky=tk.W)
+            if "default_value" in value:
+                value["var"].set(value["default_value"])
+            if "description" in value:
+                value["var"].trace("w", lambda *args, k=key: on_checkbox_clicked(k))
+
+        elif value["widget_type"] == "textbox":
+            label = ttk.Label(frame, text=value["label"])
+            label.grid(row=row, column=0, sticky=tk.W)
+
+            value["entry"] = ttk.Entry(frame, width=40)
+            if "hidden" in value and value["hidden"]:
+                value["entry"].config(show="*")
+            value["entry"].grid(row=row, column=1, sticky=(tk.W, tk.E))
+            if "default_value" in value:
+                value["entry"].insert(0, value["default_value"])
+
+        row += 1
+
+    confirm_button = ttk.Button(frame, text="Confirm", command=app.quit)
+    confirm_button.grid(row=row, columnspan=2, pady=10)
+
+    app.mainloop()
+
+    while True:
+        try:
+            returnValue = on_confirm()
+            break
+        except ValueError:
+            app.mainloop()
+    return returnValue
+
+def _ask_cli(innerConfig):
+    innerResult = {}
+
+    for key, value in innerConfig.items():
+        print("\n")
+        if "default_value" in value:
+            print(f"Default value for {value['label']}: {value['default_value']}")
+            use_default = choose_yes_no("Use default value?")
+            if use_default:
+                innerResult[key] = value["default_value"]
+                continue
+
+        if value["widget_type"] == "list":
+            options = value["options"]
+            if "descriptions" in value:
+                options = [f"{option} - {desc}" for option, desc in zip(value["options"], value["descriptions"])]
+            innerResult[key] = choose_from_list_of_strings(value["label"], options)
+
+        elif value["widget_type"] == "checkbox":
+            innerResult[key] = choose_yes_no(value["label"])
+
+        elif value["widget_type"] == "textbox":
+            if "value_type" in value:
+                if value["value_type"] == "int":
+                    choose_float(value["label"], minValue=value["min_value"], maxValue=value["max_value"])
+                elif value["value_type"] == "float":
+                    choose_int(value["label"], minValue=value["min_value"], maxValue=value["max_value"])
+                else:
+                    raise NotImplementedError("Type checking for this type is not implemented")
+            else:
+                innerResult[key] = input(f"{value['label']}: ")
+
+    return innerResult

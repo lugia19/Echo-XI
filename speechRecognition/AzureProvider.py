@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import json
 import threading
+
+import requests
 
 import helper
 from speechRecognition.__SpeechRecProviderAbstract import SpeechRecProvider
@@ -17,32 +21,70 @@ class AzureProvider(SpeechRecProvider):
             self.recognitionEndEvent = threading.Event()
             configData = helper.get_provider_config(self)
 
-            if configData["speech_key"] == "":
-                configData["speech_key"] = input("Please input your azure API key.")
+            azureConfigInputs = dict()
+            speechKeyInput = {
+                "widget_type": "textbox",
+                "label": "Azure API Key",
+                "hidden": True
+            }
+            serviceRegionInput = {
+                "widget_type": "textbox",
+                "label": "Azure Service Region"
+            }
 
-            if configData["service_region"] == "":
-                configData["service_region"] = input("Please input your service region.")
+            azureConfigInputs["speech_key"] = speechKeyInput
+            azureConfigInputs["service_region"] = serviceRegionInput
 
-            helper.update_provider_config(self, configData)
+
+            try:
+                deviceNames = self.list_input_devices()
+                inputDeviceInput = {
+                    "widget_type": "list",
+                    "label": "Audio Input Device",
+                    "options": deviceNames
+                }
+
+                azureConfigInputs["input_device"] = inputDeviceInput
+            except NotImplementedError:
+                audio_config = speechsdk.AudioConfig()
+
+
+            multilingualInput = {
+                "widget_type": "checkbox",
+                "label": "Use languages other than English?",
+                "description": "You can choose up to 10 different languages that will be recognized by inputting their BCP-47 code (ex: en-US)."
+                               "\nNOTE: Do not include two locales for the same language (ex: en-US and en-GB)."
+            }
+            azureConfigInputs["multilingual"] = multilingualInput
+
+
+            while True:
+                result = helper.ask_fetch_from_and_update_config(azureConfigInputs, configData)
+                testUrl = f"https://{configData['service_region']}.api.cognitive.microsoft.com/sts/v1.0/issueToken"
+                headers = {
+                    "Ocp-Apim-Subscription-Key": configData["speech_key"]
+                }
+                response = requests.post(testUrl, headers=headers)
+                if response.ok:
+                    break
+                else:
+                    if not helper.choose_yes_no("Error! Incorrect or expired API Key. Try again?"):
+                        exit()
+
+            if "input_device" in result:
+                deviceName = result["input_device"]
+                audio_config = speechsdk.AudioConfig(False, device_name=self.get_device_id_from_name(deviceName))
+
+
 
 
 
             auto_detect_source_language_config = None
             translation_config = None
             speech_config = None
-
             languages = ["en-US"]
-            useStoredLanguageList = False
-            self.multiLingual = False
-            #Check if we have a stored language list. If we do, override everything and use that.
-            if len(configData["language_list"]) > 0:
-                useStoredLanguageList = True
-                languages = configData["language_list"]
-                if len(configData["language_list"]) > 1:
-                    self.multiLingual = True
-            else:
-                self.multiLingual = helper.choose_yes_no("Are you going to be speaking in a language other than english?"
-                                                "\nYou can choose up to 10 different languages that will be recognized.")
+
+            self.multiLingual = configData["multilingual"]
 
 
             if self.multiLingual:
@@ -51,31 +93,30 @@ class AzureProvider(SpeechRecProvider):
                 translation_config = speechsdk.translation.SpeechTranslationConfig(
                     subscription=configData["speech_key"],
                     endpoint=endpoint_string,
-                    speech_recognition_language='en-US',
-                    target_languages=['en'])
+                    speech_recognition_language='en-US',    #Unused value
+                    target_languages=['en'])                #Also unused
+
 
                 translation_config.set_property(property_id=speechsdk.PropertyId.SpeechServiceConnection_LanguageIdMode, value='Continuous')
                 translation_config.set_profanity(profanity_option=speechsdk.ProfanityOption(2))  # Disable the profanity filter.
 
-                if not useStoredLanguageList:
-                    languages = []
-                    if helper.choose_yes_no("Would you like to view the list of supported languages in your browser?"):
-                        import webbrowser
-                        webbrowser.open("https://learn.microsoft.com/en-us/azure/cognitive-services/speech-service/language-support?tabs=stt", new=2, autoraise=True)
-                    print("Note: Please do not include the same language multiple times with the same locale (ex: don't include both en-US and en-GB)")
+                azureTranslationInputs = {
+                    "language_list": {
+                        "widget_type": "textbox",
+                        "label" : "Please input UP TO 10 languages in BCP-47 format separated by commas (ex: 'en-US, it-IT')"
+                    }
+                }
 
-                    while len(languages) <= 10:
-                        print("Your currently selected languages are: " + str(languages))
-                        if len(languages) > 0 and not helper.choose_yes_no("Would you like to add another language?"):
-                            break
+                if helper.choose_yes_no("Would you like to view the list of supported languages in your browser?"):
+                    import webbrowser
+                    webbrowser.open("https://learn.microsoft.com/en-us/azure/cognitive-services/speech-service/language-support?tabs=stt", new=2, autoraise=True)
 
-                        print("Please input the language in the BCP-47 format (ex: en-US).")
-                        newLang = input("Please input the language code.")
-                        if newLang not in languages:
-                            languages.append(newLang)
-                    if helper.choose_yes_no("Would you like to always use this list of languages?"):
-                        configData["language_list"] = languages
-                        helper.update_provider_config(self, configData)
+                userInput = helper.ask_fetch_from_and_update_config(azureTranslationInputs, configData)
+
+                languages = [x.strip() for x in userInput["language_list"].split(",")]
+                if len(languages) > 10:
+                    languages = languages[:10]  # Discard anything over 10 languages.
+
                 auto_detect_source_language_config = speechsdk.languageconfig.AutoDetectSourceLanguageConfig(languages=languages)
 
             self.selectedLanguage = None
@@ -85,12 +126,7 @@ class AzureProvider(SpeechRecProvider):
                 self.selectedLanguage = languages[0]
                 speech_config = speechsdk.SpeechConfig(subscription=configData["speech_key"], region=configData["service_region"])
                 speech_config.speech_recognition_language = self.selectedLanguage
-                speech_config.set_profanity(profanity_option=speechsdk.ProfanityOption(2)) #Disable the profanity filter
-            try:
-                inputDevice = self.chooseInputDevice()
-                audio_config = speechsdk.AudioConfig(False, device_name=inputDevice)
-            except NotImplementedError:
-                audio_config = speechsdk.AudioConfig()
+                speech_config.set_profanity(profanity_option=speechsdk.ProfanityOption(2)) #Disable the profanity filter again.
 
 
             self.recognizer: speechsdk.translation.TranslationRecognizer|speechsdk.SpeechRecognizer
@@ -103,7 +139,7 @@ class AzureProvider(SpeechRecProvider):
                 self.recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config, audio_config=audio_config)
 
     @staticmethod
-    def chooseInputDevice() -> str:
+    def list_input_devices() -> list[str]:
         if platform.system() == "Windows":
             #Code to enumerate input devices adapted from https://github.com/AndreMiras/pycaw/issues/50#issuecomment-981069603
             devices = list()
@@ -129,17 +165,22 @@ class AzureProvider(SpeechRecProvider):
             for device in devices:
                 deviceNames.append(device.FriendlyName + " - ID: "+device.id)
 
-            chosenDevice = helper.choose_from_list_of_strings("Please select an input device.", deviceNames)
-            chosenDevice = chosenDevice[chosenDevice.find(" - ID: ")+len(" - ID: "):]
-            return chosenDevice
+            return deviceNames
         elif platform.system() == "Linux":
             #Luckily portaudio includes the ALSA device IDs as part of the device name.
-            inputInfo = helper.select_portaudio_device("input", alsaOnly=True)
-            #HDA Intel PCH: HDMI 6 (hw:0,12)
-            inputName = inputInfo["name"]
-            nameStart = inputName.find("(hw:")
-            nameEnd = inputName.find(")",nameStart)+1
-            alsaName = inputName[nameStart:nameEnd]
+            return helper.get_list_of_portaudio_devices("input", alsaOnly=True)
+        else:
+            raise NotImplementedError()
+
+    @staticmethod
+    def get_device_id_from_name(deviceName:str) -> str:
+        if platform.system() == "Windows":
+            deviceID = deviceName[deviceName.find(" - ID: ")+len(" - ID: "):]
+            return deviceID
+        elif platform.system() == "Linux":
+            nameStart = deviceName.find("(hw:")
+            nameEnd = deviceName.find(")", nameStart) + 1
+            alsaName = deviceName[nameStart:nameEnd]
             print("Alsa device name: " + alsaName)
             return alsaName
 
@@ -152,6 +193,7 @@ class AzureProvider(SpeechRecProvider):
             self.recognizer.start_continuous_recognition()
             self.recognitionEndEvent.wait()
         except KeyboardInterrupt:
+            self.recognizer.stop_continuous_recognition()
             self.stop_rec("keyboard interrupt")
             print("Stopping...")
 

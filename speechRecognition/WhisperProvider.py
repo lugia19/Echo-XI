@@ -16,77 +16,143 @@ class WhisperProvider(SpeechRecProvider):
         super().__init__()
         self.type = "whisper"
 
-        options = ["Run the model locally", "Use the paid API"]
-        chosenOption = helper.choose_from_list_of_strings("Please choose one.", options)
-        self.runLocal = options.index(chosenOption) == 0
-
-        if self.runLocal:
-            modelOptions = ["Base (1GB)","Small (2GB)","Medium (5GB)", "Large (10GB)"]
-            chosenModel = helper.choose_from_list_of_strings("Here are the available whisper models alongside their VRAM requirements. Please choose one.", modelOptions)
-            if "Large" not in chosenModel:
-                self.useMultiLingual = helper.choose_yes_no("Are you going to be speaking languages other than english?")
-            else:
-                self.useMultiLingual = True
-            modelBaseName = chosenModel[:chosenModel.find(" ")].lower() + ("" if self.useMultiLingual else ".en")
-            print("Chosen model name: " + modelBaseName)
-
-            self.model = whisper.load_model(modelBaseName)
-
-        #Choose a mic.
-        self.microphoneInfo = helper.select_portaudio_device("input")
-
-        self.srMic = sr.Microphone(device_index=self.microphoneInfo["index"], sample_rate=int(self.microphoneInfo["defaultSampleRate"]))
-
-        self.recognizer = sr.Recognizer()
         configData = helper.get_provider_config(self)
 
-        if not self.runLocal:
-            if configData["api_key"] == "":
-                configData["api_key"] = input("Please input your openAI API key.")
-            openai.api_key = configData["api_key"]
+        sharedInput = dict()
+        inputDeviceInput = {
+            "widget_type": "list",
+            "options": helper.get_list_of_portaudio_devices("input"),
+            "label": "Choose your input device"
+        }
+        runOptions = ["Run the model locally", "Use the paid API"]
 
-        if helper.choose_yes_no("Would you like to edit the voice detection settings?"):
-            options = ["Pause time (How long in seconds you have to pause before a sentence is considered over)",
-                       "Energy threshold (How loud you need to be in order for your voice to be detected)",
-                       "Dynamic energy threshold (Whether the energy threshold changes based on the detected background noise)"]
-            finishedEditing = False
-            while not finishedEditing:
-                chosenOption = helper.choose_from_list_of_strings("What setting would you like to edit?", options)
-                chosenOption = chosenOption[:chosenOption.index("(")].lower()
-                if "pause time" in chosenOption:
-                    print("The value is currently " + str(configData["pause_time"]))
-                    configData["pause_time"] = helper.choose_float("Enter the new value.", 0, 10)
-                elif "dynamic energy threshold" in chosenOption:
-                    print("The value is currently " + str(configData["dynamic_energy_threshold"]))
-                    configData["dynamic_energy_threshold"] = helper.choose_yes_no("Would you like to enable it (y) or disable it (n)?")
-                else:
-                    print("The value is currently " + str(configData["energy_threshold"]))
-                    configData["energy_threshold"] = helper.choose_int("Enter the new value.", 0, 999)
-                finishedEditing = helper.choose_yes_no("Are you finished editing the settings?")
-        helper.update_provider_config(self, configData)
+        runMode = {
+            "widget_type": "list",
+            "options": runOptions,
+            "label": "Choose which mode you'd like"
+        }
+
+        pauseTimeInput = {
+            "widget_type": "textbox",
+            "label": "Pause time (How long in seconds you have to pause before a sentence is considered over)",
+            "value_type":"float",
+            "min_value": 0,
+            "max_value": 10
+        }
+
+        energyThresholdInput = {
+            "widget_type": "textbox",
+            "label": "Energy threshold (How loud you need to be in order for your voice to be detected)",
+            "value_type":"int",
+            "min_value": 0,
+            "max_value": 999
+        }
+
+        dynamicThresholdInput = {
+            "widget_type": "checkbox",
+            "label": "Dynamic energy threshold (Whether the energy threshold changes based on the detected background noise)"
+        }
+
+        sharedInput["input_device"] = inputDeviceInput
+        sharedInput["run_mode"] = runMode
+        sharedInput["pause_time"] = pauseTimeInput
+        sharedInput["energy_threshold"] = energyThresholdInput
+        sharedInput["dynamic_energy_threshold"] = dynamicThresholdInput
+
+        userInput = helper.ask_fetch_from_and_update_config(sharedInput, configData)
+
+        # Set the mic.
+        self.microphoneInfo = helper.get_portaudio_device_info_from_name(userInput["input_device"])
+        self.srMic = sr.Microphone(device_index=self.microphoneInfo["index"], sample_rate=int(self.microphoneInfo["defaultSampleRate"]))
+        self.recognizer = sr.Recognizer()
+
+        self.runLocal = runOptions.index(userInput["run_mode"]) == 0
+
 
 
 
         if self.runLocal:
-            self.languageOverride = ""
-            if self.useMultiLingual:
-                if helper.choose_yes_no("Would you like to manually choose which language you'll be speaking? \n"
-                                        "This means you will only be able to use this language, but it may help in cases where your language is being confused for another."):
-                    if helper.choose_yes_no("Would you like to view a list of supported languages?"):
-                        print("Supported languages:")
-                        print("Two letter code: Language name")
-                        for key, value in whisper.tokenizer.LANGUAGES.items():
-                            print(key + ": " + value)
+            localInputs = dict()
+            modelOptions = ["Base (1GB)", "Small (2GB)", "Medium (5GB)", "Large (10GB)"]
+            modelInput = {
+                "widget_type" : "list",
+                "options": modelOptions,
+                "label": "Choose a model size (check the VRAM requirements)"
+            }
 
-                    langCodes = whisper.tokenizer.LANGUAGES.keys()
-                    langNames = whisper.tokenizer.LANGUAGES.values()
-                    chosenLanguage = ""
-                    while chosenLanguage == "":
-                        chosenLanguage = input("Please specify the language, either by its name or its two letter code (ex: italian or it for italian.)")
-                        if chosenLanguage not in langCodes and chosenLanguage not in langNames:
-                            print("Language not found! Maybe you spelled it wrong?")
-                            chosenLanguage = ""
-                    self.languageOverride = chosenLanguage
+            multilingualInput = {
+                "widget_type": "checkbox",
+                "label": "Enable non-english language recognition"
+            }
+
+            localInputs["model_size"] = modelInput
+            localInputs["multilingual"] = multilingualInput
+
+            userLocalInput = helper.ask_fetch_from_and_update_config(localInputs, configData)
+
+            self.useMultiLingual = userLocalInput["multilingual"]
+
+            chosenModel = userLocalInput["model_size"]
+
+
+
+            if self.useMultiLingual:
+                multiLingualConfig = dict()
+                languageList = list()
+                for key, value in whisper.tokenizer.LANGUAGES.items():
+                    languageList.append(value + " (" + key + ")")
+
+                languageOverrideInput = {
+                    "widget_type": "list",
+                    "label": "Manually specify speaking language"
+                             "\n(Only used if automatic detection is disabled)",
+                    "options":languageList
+                }
+
+                automaticDetectionInput = {
+                    "widget_type" : "checkbox",
+                    "label": "Automatic language detection"
+                }
+
+                multiLingualConfig["language_override"] = languageOverrideInput
+                multiLingualConfig["automatic_detection"] = automaticDetectionInput
+
+                userLocalInput = helper.ask_fetch_from_and_update_config(multiLingualConfig, configData)
+                if not userLocalInput["automatic_detection"]:
+                    #User wants to override the language detection
+                    self.languageOverride = userLocalInput["language_override"]
+                    self.languageOverride = self.languageOverride[self.languageOverride.find("(")+1:self.languageOverride.find(")")]
+                    print(self.languageOverride)
+                    if self.languageOverride == "en":
+                        #The user is a bloody idiot and said "no" to only using english but then specified english as a language override.
+                        #Let's set the model back to the english-only variant.
+                        self.useMultiLingual = False
+            else:
+                if "Large" in chosenModel:
+                    self.languageOverride = "en"
+
+
+            modelBaseName = chosenModel[:chosenModel.find(" ")].lower()
+            if not self.useMultiLingual and "Large" not in chosenModel:
+                modelBaseName += ".en"
+            self.model = whisper.load_model(modelBaseName)
+        else:
+            apiKeyInput = {
+                "api_key":{
+                    "widget_type": "textbox",
+                    "hidden": True,
+                    "label": "OpenAI API Key"
+                }
+            }
+
+            while True:
+                openai.api_key = helper.ask_fetch_from_and_update_config(apiKeyInput, configData)["api_key"]
+                try:
+                    openai.Model.list()
+                    break
+                except openai.error.AuthenticationError:
+                    if not helper.choose_yes_no("Error! Incorrect or expired API Key. Try again?"):
+                        exit()
 
         self.recognizer.pause_threshold = configData["pause_time"]
         self.recognizer.energy_threshold = configData["energy_threshold"]

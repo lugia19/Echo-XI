@@ -20,54 +20,74 @@ class VoskProvider(SpeechRecProvider):
     def __init__(self):
         super().__init__()
         self.type = "vosk"
-        vosk_config = helper.get_provider_config(self)
-        if vosk_config["model_path"] != "":
-            self.model = Model(vosk_config["model_path"])
-        else:
-            self.model = Model(self.select_model_from_dir())
+        voskConfig = helper.get_provider_config(self)
 
-        self.recasepuncEnabled = helper.choose_yes_no("Would you like to enable case/punctuation detection? (Improves AI voice and subtitles)")
+        voskInputs = dict()
+        inputDeviceInput = {
+            "widget_type": "list",
+            "options": helper.get_list_of_portaudio_devices("input"),
+            "label": "Choose your input device"
+        }
 
-        if self.recasepuncEnabled:
-            print("What language will you be speaking? Please input it as a two letter ISO_639-1 code.")
-            if helper.choose_yes_no("Would you like to open the list of ISO_639-1 codes in your browser?"):
+        availableVoskDirs = self.list_models()
+
+        while len(availableVoskDirs) == 0:
+            if helper.choose_yes_no("Could not automatically determine location of vosk model, please put it in " + os.path.join(os.getcwd(),"models","vosk") +
+                                    "\nWould you like to open the download page for vosk models in your browser?"):
                 import webbrowser
-                webbrowser.open("https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes", new=2, autoraise=True)
-            self.chosenLanguage = input("Please input the language code.")
+                webbrowser.open("https://alphacephei.com/vosk/models", new=2, autoraise=True)
+            if not helper.choose_yes_no("Would you like to try again?"):
+                exit()
+            availableVoskDirs = self.list_models()
 
-            if vosk_config["repunc_model_path"] != "":
-                recasepunc_setup(self.chosenLanguage, vosk_config["repunc_model_path"])
-            else:
-                print("Note: Please make sure to select a vosk and recasepunc with the SAME LANGUAGE. Otherwise the results will be unpredictable.")
-                recasepunc_setup(self.chosenLanguage)
+        dirNames = list()
 
-        self.microphoneInfo = helper.select_portaudio_device("input")
+        for directory in availableVoskDirs:
+            dirNames.append(directory[directory.rfind("\\")+1:])
+
+        voskModelPathInput = {
+            "widget_type": "list",
+            "options": dirNames,
+            "label": "Choose which vosk model to use"
+        }
+
+        voskLanguageInput = {
+            "widget_type": "textbox",
+            "label": "Language you will be speaking"
+        }
+
+        voskInputs["input_device"] = inputDeviceInput
+        voskInputs["model_path"] = voskModelPathInput
+        voskInputs["language"] = voskLanguageInput
+
+        if helper.choose_yes_no("You must specify the language you will be speaking as a two letter ISO_639-1 code."
+                                "\nWould you like to open the list of ISO_639-1 codes in your browser?"):
+            import webbrowser
+            webbrowser.open("https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes", new=2, autoraise=True)
+
+        userInputs = helper.ask_fetch_from_and_update_config(voskInputs, voskConfig)
+
+        voskModelPath = os.path.join(os.getcwd(),"models","vosk",voskConfig["model_path"])
+
+        self.model = Model(voskModelPath)
+
+        self.chosenLanguage = userInputs["language"]
+        self.recasepuncEnabled = recasepunc_setup(languageCode=self.chosenLanguage)
+
+        self.microphoneInfo = helper.get_portaudio_device_info_from_name(voskConfig["input_device"])
         self.recognizer:KaldiRecognizer = KaldiRecognizer(self.model, self.microphoneInfo["defaultSampleRate"])
 
     @staticmethod
-    def select_model_from_dir() -> str:
+    def list_models() -> list[str]:
         voskModelsDir = os.path.join(os.getcwd(), "models", "vosk")
-        voskModelPath = None
         print("Looking for available vosk models in " +voskModelsDir+"...")
         eligibleDirectories = list()
         for directory in os.listdir(voskModelsDir):
             if os.path.isdir(os.path.join(voskModelsDir, directory)) and "vosk-model-" in directory:
                 eligibleDirectories.append(os.path.join(voskModelsDir, directory))
-        if len(eligibleDirectories) == 0:
-            print("Could not automatically determine location of vosk model, please put it in " + voskModelsDir)
-            if helper.choose_yes_no("Would you like to open the download page for vosk models in your browser?"):
-                import webbrowser
-                webbrowser.open("https://alphacephei.com/vosk/models", new=2, autoraise=True)
-            exit()
-        elif len(eligibleDirectories) == 1:
-            voskModelPath = eligibleDirectories[0]
-        else:
-            dirNames = []
-            for directory in eligibleDirectories:
-                dirNames.append(directory[directory.rfind("\\")+1:])
-            chosenName = helper.choose_from_list_of_strings("Found multiple eligible vosk models. Please choose one.", dirNames)
-            voskModelPath = eligibleDirectories[dirNames.index(chosenName)]
-        return voskModelPath
+
+        return eligibleDirectories
+
     def recognize_loop(self):
         pyABackend = pyaudio.PyAudio()
         micStream = pyABackend.open(

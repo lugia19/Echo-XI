@@ -6,16 +6,40 @@ import deepl
 googleTranslator:googletrans.Translator
 deeplTranslator:Optional[deepl.Translator] = None
 def translation_setup():
-    print("Note: Regardless of which language you choose when initializing a speech provider, the text to speech output will ALWAYS be in english.")
-    global deeplTranslator, googleTranslator
-    if helper.choose_yes_no("Would you like to use DeepL to translate the languages it supports?"):
-        deeplConfig = helper.get_deepl_config()
-        if deeplConfig["api_key"] == "":
-            deeplConfig["api_key"] = input("Please input your DeepL API key.")
-            helper._configData["deepl_settings"]["api_key"] = deeplConfig["api_key"]
-            helper.update_config_file()
+    translationConfigInputs = dict()
+    deeplEnabledInput = {
+        "widget_type": "checkbox",
+        "label": "Enable DeepL translation",
+        "description": "Uses DeepL to translate your speech (if it's in a support language) into English. Otherwise it uses google translate."
+    }
 
-        deeplTranslator = deepl.Translator(deeplConfig["api_key"]).set_app_info("speech_to_speech_by_lugia","2.0.0")
+    deeplAPIKeyInput = {
+        "widget_type": "textbox",
+        "label": "DeepL API Key",
+        "hidden": True
+    }
+
+    deeplConfig = helper.get_deepl_config()
+
+    translationConfigInputs["api_key"] = deeplAPIKeyInput
+    translationConfigInputs["enabled"] = deeplEnabledInput
+
+
+
+    global deeplTranslator, googleTranslator
+    while True:
+        result = helper.ask_fetch_from_and_update_config(translationConfigInputs, deeplConfig)
+        if result["enabled"]:
+            deeplTranslator = deepl.Translator(deeplConfig["api_key"]).set_app_info("speech_to_speech_by_lugia","2.0.0")
+            try:
+                deeplTranslator.get_usage()
+                break
+            except deepl.AuthorizationException:
+                if not helper.choose_yes_no("Authorization failed! API Key incorrect or expired. Try again?"):
+                    deeplTranslator = None
+                    break
+        else:
+            break
 
     googleTranslator = googletrans.Translator()
 def translate_if_needed(text:str, language:str) -> str:
@@ -26,7 +50,7 @@ def translate_if_needed(text:str, language:str) -> str:
 
     language = language.lower()  # Ensure it's in lowercase.
 
-    if language == "en":
+    if language == "en" or language == "en-us" or language == "en-gb":
         return text
 
     if deeplTranslator is not None:
