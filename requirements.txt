@@ -7,6 +7,7 @@ tqdm
 transformers
 
 wheel #Technically not necessary but it'll make your life easier.
+keyring #to store sensitive parameters such as the API keys
 
 #Requirements for pyttsx3 TTS:
 pyttsx3

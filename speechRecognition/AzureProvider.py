@@ -32,7 +32,7 @@ class AzureProvider(SpeechRecProvider):
                 "label": "Azure Service Region"
             }
 
-            azureConfigInputs["speech_key"] = speechKeyInput
+            azureConfigInputs["azure_speech_key"] = speechKeyInput
             azureConfigInputs["service_region"] = serviceRegionInput
 
 
@@ -62,7 +62,7 @@ class AzureProvider(SpeechRecProvider):
                 result = helper.ask_fetch_from_and_update_config(azureConfigInputs, configData)
                 testUrl = f"https://{configData['service_region']}.api.cognitive.microsoft.com/sts/v1.0/issueToken"
                 headers = {
-                    "Ocp-Apim-Subscription-Key": configData["speech_key"]
+                    "Ocp-Apim-Subscription-Key": result["azure_speech_key"]
                 }
                 response = requests.post(testUrl, headers=headers)
                 if response.ok:
@@ -84,14 +84,14 @@ class AzureProvider(SpeechRecProvider):
             speech_config = None
             languages = ["en-US"]
 
-            self.multiLingual = configData["multilingual"]
+            self.multiLingual = result["multilingual"]
 
 
             if self.multiLingual:
-                endpoint_string = "wss://{}.stt.speech.microsoft.com/speech/universal/v2".format(configData["service_region"])
+                endpoint_string = "wss://{}.stt.speech.microsoft.com/speech/universal/v2".format(result["service_region"])
 
                 translation_config = speechsdk.translation.SpeechTranslationConfig(
-                    subscription=configData["speech_key"],
+                    subscription=result["azure_speech_key"],
                     endpoint=endpoint_string,
                     speech_recognition_language='en-US',    #Unused value
                     target_languages=['en'])                #Also unused
@@ -124,7 +124,7 @@ class AzureProvider(SpeechRecProvider):
             if len(languages) == 1:
                 self.multiLingual = False
                 self.selectedLanguage = languages[0]
-                speech_config = speechsdk.SpeechConfig(subscription=configData["speech_key"], region=configData["service_region"])
+                speech_config = speechsdk.SpeechConfig(subscription=result["azure_speech_key"], region=result["service_region"])
                 speech_config.speech_recognition_language = self.selectedLanguage
                 speech_config.set_profanity(profanity_option=speechsdk.ProfanityOption(2)) #Disable the profanity filter again.
 

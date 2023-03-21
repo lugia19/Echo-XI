@@ -19,7 +19,7 @@ class ElevenlabsProvider(TTSProvider):
         configData = helper.get_provider_config(self)
 
         apiKeyInput = {
-            "api_key":
+            "xi_api_key":
                 {
                     "widget_type": "textbox",
                     "label": "Elevenlabs API Key",
@@ -29,9 +29,7 @@ class ElevenlabsProvider(TTSProvider):
 
 
         while True:
-            helper.ask_fetch_from_and_update_config(apiKeyInput, configData)
-
-            user = ElevenLabsUser(configData["api_key"])
+            user = ElevenLabsUser(helper.ask_fetch_from_and_update_config(apiKeyInput, configData)["xi_api_key"])
             try:
                  voiceList = user.get_available_voices()
                  break

@@ -138,7 +138,7 @@ class WhisperProvider(SpeechRecProvider):
             self.model = whisper.load_model(modelBaseName)
         else:
             apiKeyInput = {
-                "api_key":{
+                "openai_api_key":{
                     "widget_type": "textbox",
                     "hidden": True,
                     "label": "OpenAI API Key"
@@ -146,7 +146,7 @@ class WhisperProvider(SpeechRecProvider):
             }
 
             while True:
-                openai.api_key = helper.ask_fetch_from_and_update_config(apiKeyInput, configData)["api_key"]
+                openai.api_key = helper.ask_fetch_from_and_update_config(apiKeyInput, configData)["openai_api_key"]
                 try:
                     openai.Model.list()
                     break

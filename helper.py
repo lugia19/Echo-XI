@@ -6,6 +6,7 @@ import platform
 from typing import Mapping
 import tkinter as tk
 from tkinter import ttk
+import keyring
 
 backgroundColor = "#2b2b2b"
 buttonBackground = "#424242"
@@ -88,8 +89,6 @@ def choose_yes_no(prompt: str, trueOption: str = "Yes", falseOption: str = "No")
         window.title("Question")
         window.configure(bg="#2b2b2b")
         setup_style(window, backgroundColor, buttonBackground,foregroundColor)
-        # Create and set a style
-        style = ttk.Style()
         # Create and place the prompt label
         prompt_label = ttk.Label(window, text=prompt, wraplength=300)
         prompt_label.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
@@ -319,9 +318,23 @@ def setup_style(app, backgroundColor, buttonBackground, foregroundColor):
               foreground=[('active', foregroundColor)])  # Custom foreground (text) color on hover
 
 def ask_fetch_from_and_update_config(inputDict:dict, configData:dict):
+    """
+    Given a correctly structured inputDict, it generates a GUI (or a CLI) to ask that information from the user.
+    If the configData contains values corresponding to the keys for various GUI elements, it pulls those values to display as default.
+    It will then save the user's new values back to the config file, and update it.
+
+    NOTE: For textbox items marked as "hidden", this DOES NOT HAPPEN. The values are instead written to and read from the system keyring.
+    """
+
+
     for key, value in inputDict.items():
-        if key in configData and configData[key] != "":
-            value["default_value"] = configData[key]
+        if "hidden" in value and value["hidden"]:
+            storedValue = keyring.get_password("speech2speech",key)
+            if storedValue is not None:
+                value["default_value"] = storedValue
+        else:
+            if key in configData and configData[key] != "":
+                value["default_value"] = configData[key]
 
     if useGUI:
         userInputs = _ask_ui(inputDict)
@@ -329,7 +342,10 @@ def ask_fetch_from_and_update_config(inputDict:dict, configData:dict):
         userInputs = _ask_cli(inputDict)
 
     for key, value in userInputs.items():
-        configData[key] = value
+        if "hidden" in inputDict[key] and inputDict[key]["hidden"]:
+            keyring.set_password("speech2speech", key, value)
+        else:
+            configData[key] = value
 
     update_config_file()
     return userInputs
