@@ -1,5 +1,7 @@
 # Speech to text to speech using various services
 
+## Now with GUI!
+
 ## Info
 
 The main goal of the project is to offer speech to text to speech.
