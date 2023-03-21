@@ -1,10 +1,12 @@
 # Speech to text to speech using various services
 
-## Now with GUI!
-
 ## Info
 
 The main goal of the project is to offer speech to text to speech.
+
+**It now has a GUI, and it stores all the settings you input. Sensitive details such as API Keys are stored in the system keyring.**
+
+In case you want to use the cli, simply call the script from the comamnd line with the argument --cli.
 
 It offers three separate speech recognition services:
 - Vosk, with [recasepunc](https://github.com/benob/recasepunc) to add punctuation
@@ -30,6 +32,14 @@ Before anything else: you'll need to have ffmpeg in your $PATH. You can follow [
 
 Additionally, if you're on linux, you'll need to make sure portaudio is installed.
 
+On windows:
+
+1) Clone the repo: `git clone https://github.com/lugia19/speechToSpeechElevenLabs.git`
+
+2) Run run.bat - it will handle all the following steps for you.
+
+Everywhere else:
+
 1) Clone the repo: `git clone https://github.com/lugia19/speechToSpeechElevenLabs.git`
 
 2) Create a venv: `python -m venv venv`
@@ -40,7 +50,7 @@ Additionally, if you're on linux, you'll need to make sure portaudio is installe
 
 5) Install the requirements: `pip install -r requirements.txt`
 
-6) Run it and follow the instructions.
+6) Run it.
 
 
 
