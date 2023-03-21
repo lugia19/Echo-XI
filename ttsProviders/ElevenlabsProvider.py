@@ -67,10 +67,24 @@ class ElevenlabsProvider(TTSProvider):
             print("Finished playing audio:" + prompt)
             self.readyForPlaybackEvent.set()
 
-        self.ttsVoice.generate_and_stream_audio(prompt, outputDeviceIndex,
-                                                streamInBackground=True,
-                                                onPlaybackStart=startcallbackfunc,
-                                                onPlaybackEnd=endcallbackfunc)
+        streamEnabled = True
+        if streamEnabled:
+            self.ttsVoice.generate_and_stream_audio(prompt=prompt, portaudioDeviceID=outputDeviceIndex,
+                                                    streamInBackground=True,
+                                                    onPlaybackStart=startcallbackfunc,
+                                                    onPlaybackEnd=endcallbackfunc)
+        else:
+            kwargs = {
+                "prompt": prompt,
+                "portaudioDeviceID": outputDeviceIndex,
+                "playInBackground": True,
+                "onPlaybackStart": startcallbackfunc,
+                "onPlaybackEnd": endcallbackfunc
+            }
+            threading.Thread(target=self.ttsVoice.generate_and_play_audio,kwargs=kwargs).start()
+
+
+
 
     def waitForPlaybackReady(self):
         while True:

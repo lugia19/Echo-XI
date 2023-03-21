@@ -31,6 +31,7 @@ dummyVar2:WordpieceTokenizer
 srProvider:SpeechRecProvider
 def main():
     helper.show_text("Voice recognition will start once you click OK...")
+    print("Recognition started...")
     srProvider.recognize_loop()
 
 
