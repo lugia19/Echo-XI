@@ -41,6 +41,7 @@ def subtitle_setup():
     global wsClient
     while True:
         result = helper.ask_fetch_from_and_update_config(obsInputs, obsConfig)
+        helper.subtitlesEnabled = result["enabled"]
 
         if not result["enabled"]:
             return

@@ -52,6 +52,9 @@ defaultConfig: dict[str, str | int| list|float] = {
             "ElevenlabsProvider": {
                 "api_key": "",
                 "voice_id": ""
+            },
+            "PyttsxProvider": {
+                "voice_name": ""
             }
         },
         "speech_recognition_config":{

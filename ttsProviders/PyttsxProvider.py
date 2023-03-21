@@ -17,10 +17,21 @@ class PyttsxProvider(TTSProvider):
         self.playbackReadyEvent.set()
         voices = self.engine.getProperty('voices')
         voiceNames = list()
+        configData = helper.get_provider_config(self)
         for voice in voices:
             voiceNames.append(voice.name)
 
-        chosenVoice = voiceNames.index(helper.choose_from_list_of_strings("Please choose a voice.", voiceNames))
+        pyttsx3Inputs = {
+            "voice_name": {
+                "widget_type": "list",
+                "options": voiceNames,
+                "label": "Choose a voice"
+            }
+        }
+
+        userInputs = helper.ask_fetch_from_and_update_config(pyttsx3Inputs, configData)
+
+        chosenVoice = voiceNames.index(userInputs["voice_name"])
         chosenVoice = voices[chosenVoice].id
         self.engine.setProperty("voice",chosenVoice)
         threading.Thread(target=self.waitForEvent).start()
