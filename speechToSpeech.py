@@ -1,4 +1,7 @@
 from __future__ import annotations
+
+import sys
+
 from misc.obsSubtitles import *
 from misc.translation import *
 import helper
@@ -27,7 +30,7 @@ dummyVar2:WordpieceTokenizer
 
 srProvider:SpeechRecProvider
 def main():
-    helper.show_text("Text recognition will start once you click OK...")
+    helper.show_text("Voice recognition will start once you click OK...")
     srProvider.recognize_loop()
 
 
@@ -122,6 +125,10 @@ def setup():
 
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "--cli":
+            helper.useGUI = False   #Is true by default
+
     # Make sure the default folders exist...
     modelDir = os.path.join(os.getcwd(), "models")
     if not os.path.isdir(modelDir):
