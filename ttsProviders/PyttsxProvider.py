@@ -45,6 +45,9 @@ class PyttsxProvider(TTSProvider):
         soundFile = sf.SoundFile(fileName)
         event.wait()
 
+        if helper.subtitlesEnabled:
+            from misc.obsSubtitles import subtitle_update
+            subtitle_update(prompt)
         sd.play(soundFile.read(), samplerate=soundFile.samplerate, blocking=True, device=outputDeviceIndex)
         soundFile.close()
         os.remove(fileName)

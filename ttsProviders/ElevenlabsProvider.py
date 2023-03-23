@@ -62,6 +62,9 @@ class ElevenlabsProvider(TTSProvider):
         def startcallbackfunc():
             newEvent.wait()
             print("Playing audio: " + prompt)
+            if helper.subtitlesEnabled:
+                from misc.obsSubtitles import subtitle_update
+                subtitle_update(prompt)
         def endcallbackfunc():
             print("Finished playing audio:" + prompt)
             self.readyForPlaybackEvent.set()

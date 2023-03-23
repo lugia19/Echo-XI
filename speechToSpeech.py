@@ -46,8 +46,10 @@ def process_text(recognizedText:str, language):
         print("Recognized and translated text: " + translatedText)
 
         helper.ttsProvider.synthesizeAndPlayAudio(translatedText, helper.chosenOutput)
-        if helper.subtitlesEnabled:
-            subtitle_update(translatedText)
+        #Subtitle updating USED TO be here, but I moved it to the TTS providers to avoid
+        #situations where the subtitles would update before the audio is actually played
+        #if helper.subtitlesEnabled:
+        #    subtitle_update(translatedText)
     print("\nListening for voice input...\n")
 
 
