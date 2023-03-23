@@ -29,7 +29,7 @@ class PyttsxProvider(TTSProvider):
             }
         }
 
-        userInputs = helper.ask_fetch_from_and_update_config(pyttsx3Inputs, configData)
+        userInputs = helper.ask_fetch_from_and_update_config(pyttsx3Inputs, configData,"Pyttsx3 voice picker")
 
         chosenVoice = voiceNames.index(userInputs["voice_name"])
         chosenVoice = voices[chosenVoice].id

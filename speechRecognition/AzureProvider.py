@@ -57,9 +57,8 @@ class AzureProvider(SpeechRecProvider):
             }
             azureConfigInputs["multilingual"] = multilingualInput
 
-
             while True:
-                result = helper.ask_fetch_from_and_update_config(azureConfigInputs, configData)
+                result = helper.ask_fetch_from_and_update_config(azureConfigInputs, configData, "Azure configuration")
                 testUrl = f"https://{configData['service_region']}.api.cognitive.microsoft.com/sts/v1.0/issueToken"
                 headers = {
                     "Ocp-Apim-Subscription-Key": result["azure_speech_key"]
@@ -110,8 +109,7 @@ class AzureProvider(SpeechRecProvider):
                 if helper.choose_yes_no("Would you like to view the list of supported languages in your browser?"):
                     import webbrowser
                     webbrowser.open("https://learn.microsoft.com/en-us/azure/cognitive-services/speech-service/language-support?tabs=stt", new=2, autoraise=True)
-
-                userInput = helper.ask_fetch_from_and_update_config(azureTranslationInputs, configData)
+                userInput = helper.ask_fetch_from_and_update_config(azureTranslationInputs, configData,"Azure multilanguage settings")
 
                 languages = [x.strip() for x in userInput["language_list"].split(",")]
                 if len(languages) > 10:

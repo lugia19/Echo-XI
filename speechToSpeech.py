@@ -104,7 +104,7 @@ def setup():
     configQuestions["speech_provider"] = srProviderQuestion
     configQuestions["tts_provider"] = ttsProviderQuestion
 
-    userInput = helper.ask_fetch_from_and_update_config(configQuestions, miscConfig)
+    userInput = helper.ask_fetch_from_and_update_config(configQuestions, miscConfig, "General settings")
 
 
 

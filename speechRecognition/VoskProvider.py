@@ -64,8 +64,7 @@ class VoskProvider(SpeechRecProvider):
                                 "\nWould you like to open the list of ISO_639-1 codes in your browser?"):
             import webbrowser
             webbrowser.open("https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes", new=2, autoraise=True)
-
-        userInputs = helper.ask_fetch_from_and_update_config(voskInputs, voskConfig)
+        userInputs = helper.ask_fetch_from_and_update_config(voskInputs, voskConfig, "Vosk settings")
 
         voskModelPath = os.path.join(os.getcwd(),"models","vosk",voskConfig["model_path"])
 

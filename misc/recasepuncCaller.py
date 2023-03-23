@@ -40,8 +40,7 @@ def recasepunc_setup(languageCode:str) -> bool:
     recasePuncInputs["enabled"] = recasePuncEnabledInput
 
     configData = helper.get_recasepunc_config()
-
-    userInputs = helper.ask_fetch_from_and_update_config(recasePuncInputs, configData)
+    userInputs = helper.ask_fetch_from_and_update_config(recasePuncInputs, configData, "Recasepunc settings")
 
     if not userInputs["enabled"]:
         return False #Exit immediately
@@ -56,14 +55,13 @@ def recasepunc_setup(languageCode:str) -> bool:
             if len(filesInDir) == 1:
                 repuncModelPath = os.path.join(recasePuncDirOrFile, filesInDir[0])
             else:
-                chooseFileInput = {
-                    "model_file": {
+                chooseFileInput = {"model_file": {
                         "widget_type": "list",
                         "options": filesInDir,
-                        "label": "Please select which file is the actual mode."
+                        "label": "Please select which file is the actual model."
                     }
                 }
-                chosenFile = helper.ask_fetch_from_and_update_config(chooseFileInput, configData)["model_file"]
+                chosenFile = helper.ask_fetch_from_and_update_config(chooseFileInput, configData,"Choose a recasepunc model")["model_file"]
                 repuncModelPath = os.path.join(recasePuncDirOrFile, chosenFile)
 
     global predictor

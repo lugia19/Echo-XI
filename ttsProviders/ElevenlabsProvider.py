@@ -27,9 +27,8 @@ class ElevenlabsProvider(TTSProvider):
                 }
         }
 
-
         while True:
-            user = ElevenLabsUser(helper.ask_fetch_from_and_update_config(apiKeyInput, configData)["xi_api_key"])
+            user = ElevenLabsUser(helper.ask_fetch_from_and_update_config(apiKeyInput, configData,"Elevenlabs settings")["xi_api_key"])
             try:
                  voiceList = user.get_available_voices()
                  break
@@ -49,7 +48,7 @@ class ElevenlabsProvider(TTSProvider):
             }
         }
 
-        voiceID = helper.ask_fetch_from_and_update_config(voiceInput, configData)["voice_id"]
+        voiceID = helper.ask_fetch_from_and_update_config(voiceInput, configData,"Elevenlabs voice picker")["voice_id"]
         voiceID = voiceID[voiceID.find("(")+1:voiceID.find(")")]
         self.ttsVoice = user.get_voice_by_ID(voiceID)
 

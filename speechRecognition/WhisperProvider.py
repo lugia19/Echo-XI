@@ -58,8 +58,7 @@ class WhisperProvider(SpeechRecProvider):
         sharedInput["pause_time"] = pauseTimeInput
         sharedInput["energy_threshold"] = energyThresholdInput
         sharedInput["dynamic_energy_threshold"] = dynamicThresholdInput
-
-        userInput = helper.ask_fetch_from_and_update_config(sharedInput, configData)
+        userInput = helper.ask_fetch_from_and_update_config(sharedInput, configData, "Shared Whisper settings")
 
         # Set the mic.
         self.microphoneInfo = helper.get_portaudio_device_info_from_name(userInput["input_device"])
@@ -87,8 +86,7 @@ class WhisperProvider(SpeechRecProvider):
 
             localInputs["model_size"] = modelInput
             localInputs["multilingual"] = multilingualInput
-
-            userLocalInput = helper.ask_fetch_from_and_update_config(localInputs, configData)
+            userLocalInput = helper.ask_fetch_from_and_update_config(localInputs, configData, "Whisper local settings")
 
             self.useMultiLingual = userLocalInput["multilingual"]
 
@@ -116,8 +114,7 @@ class WhisperProvider(SpeechRecProvider):
 
                 multiLingualConfig["language_override"] = languageOverrideInput
                 multiLingualConfig["automatic_detection"] = automaticDetectionInput
-
-                userLocalInput = helper.ask_fetch_from_and_update_config(multiLingualConfig, configData)
+                userLocalInput = helper.ask_fetch_from_and_update_config(multiLingualConfig, configData, "Whisper multilingual config")
                 if not userLocalInput["automatic_detection"]:
                     #User wants to override the language detection
                     self.languageOverride = userLocalInput["language_override"]
@@ -146,7 +143,7 @@ class WhisperProvider(SpeechRecProvider):
             }
 
             while True:
-                openai.api_key = helper.ask_fetch_from_and_update_config(apiKeyInput, configData)["openai_api_key"]
+                openai.api_key = helper.ask_fetch_from_and_update_config(apiKeyInput, configData, "Whisper API settings")["openai_api_key"]
                 try:
                     openai.Model.list()
                     break

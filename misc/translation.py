@@ -24,11 +24,9 @@ def translation_setup():
     translationConfigInputs["deepl_api_key"] = deeplAPIKeyInput
     translationConfigInputs["enabled"] = deeplEnabledInput
 
-
-
     global deeplTranslator, googleTranslator
     while True:
-        result = helper.ask_fetch_from_and_update_config(translationConfigInputs, deeplConfig)
+        result = helper.ask_fetch_from_and_update_config(translationConfigInputs, deeplConfig,"Translation config")
         if result["enabled"]:
             deeplTranslator = deepl.Translator(result["deepl_api_key"]).set_app_info("speech_to_speech_by_lugia","2.0.0")
             try:

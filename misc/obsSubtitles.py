@@ -36,11 +36,9 @@ def subtitle_setup():
     obsInputs["obs_password"] = passwordInput
     obsInputs["enabled"] = enabledInput
 
-
-
     global wsClient
     while True:
-        result = helper.ask_fetch_from_and_update_config(obsInputs, obsConfig)
+        result = helper.ask_fetch_from_and_update_config(obsInputs, obsConfig, "OBS subtitle integration settings")
         helper.subtitlesEnabled = result["enabled"]
 
         if not result["enabled"]:
@@ -66,15 +64,13 @@ def subtitle_setup():
             if not helper.choose_yes_no("No text items found in the current scene. Would you like to try again?"):
                 return
 
-    textItemInput = {
-        "text_item": {
-            "widget_type" : "list",
+    textItemInput = {"text_item": {
+            "widget_type": "list",
             "options": textItemList,
             "label": "Text item for subtitles"
         }
     }
-
-    chosenTextItemName = helper.ask_fetch_from_and_update_config(textItemInput, obsConfig)["text_item"]
+    chosenTextItemName = helper.ask_fetch_from_and_update_config(textItemInput, obsConfig, "Choose a text object")["text_item"]
     global textItem
     currentScene = wsClient.get_current_program_scene().current_program_scene_name
     for item in wsClient.get_scene_item_list(currentScene).scene_items:

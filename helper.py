@@ -320,7 +320,7 @@ def setup_style(app, backgroundColor, buttonBackground, foregroundColor):
               background=[('active', buttonBackground)],  # Custom background color on hover
               foreground=[('active', foregroundColor)])  # Custom foreground (text) color on hover
 
-def ask_fetch_from_and_update_config(inputDict:dict, configData:dict):
+def ask_fetch_from_and_update_config(inputDict:dict, configData:dict, title:str):
     """
     Given a correctly structured inputDict, it generates a GUI (or a CLI) to ask that information from the user.
     If the configData contains values corresponding to the keys for various GUI elements, it pulls those values to display as default.
@@ -340,9 +340,9 @@ def ask_fetch_from_and_update_config(inputDict:dict, configData:dict):
                 value["default_value"] = configData[key]
 
     if useGUI:
-        userInputs = _ask_ui(inputDict)
+        userInputs = _ask_ui(inputDict, title)
     else:
-        userInputs = _ask_cli(inputDict)
+        userInputs = _ask_cli(inputDict, title)
 
     for key, value in userInputs.items():
         if "hidden" in inputDict[key] and inputDict[key]["hidden"]:
@@ -376,7 +376,7 @@ def show_custom_messagebox(app, title, message):
     app.wait_window(messagebox_window)
 
 
-def _ask_ui(config):
+def _ask_ui(config, title="Settings"):
     def on_confirm():
         result = {}
         for key, value in config.items():
@@ -428,7 +428,7 @@ def _ask_ui(config):
             show_custom_messagebox(app, "Info", config[checkbox_key]["description"])
 
     app = tk.Tk()
-    app.title("Settings")
+    app.title(title)
     setup_style(app, backgroundColor, buttonBackground, foregroundColor)
     # (Place the dark theme configuration code here)
 
@@ -499,9 +499,9 @@ def _ask_ui(config):
             app.mainloop()
     return returnValue
 
-def _ask_cli(innerConfig):
+def _ask_cli(innerConfig,title="Settings"):
     innerResult = {}
-
+    print(title)
     for key, value in innerConfig.items():
         print("\n")
         if "default_value" in value:
