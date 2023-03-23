@@ -1,3 +1,4 @@
+import datetime
 import io
 import queue
 import threading
@@ -56,10 +57,12 @@ class ElevenlabsProvider(TTSProvider):
         threading.Thread(target=self.waitForPlaybackReady).start()
 
 
-    def synthesizeAndPlayAudio(self, prompt, outputDeviceIndex) -> None:
+    def synthesizeAndPlayAudio(self, prompt, outputDeviceIndex, startTime, recognizedTime) -> None:
         newEvent = threading.Event()
         self.eventQueue.put(newEvent)
         def startcallbackfunc():
+            print(f"Time taken from zero to playback ready: {(datetime.datetime.now() - startTime).total_seconds()}s")
+            print(f"Time taken from text recognized to playback ready: {(datetime.datetime.now() - recognizedTime).total_seconds()}s")
             newEvent.wait()
             print("Playing audio: " + prompt)
             if helper.subtitlesEnabled:

@@ -1,3 +1,4 @@
+import datetime
 import os
 import queue
 import threading
@@ -36,13 +37,15 @@ class PyttsxProvider(TTSProvider):
         self.engine.setProperty("voice",chosenVoice)
         threading.Thread(target=self.waitForEvent).start()
 
-    def synthesizeAndWaitForEvent(self, prompt, outputDeviceIndex, event:threading.Event):
+    def synthesizeAndWaitForEvent(self, prompt, outputDeviceIndex, event:threading.Event, startTime, recognizedTime):
         temp = tempfile.NamedTemporaryFile(suffix=".wav", mode="wb+", delete=False)
         fileName = temp.name
         self.engine.save_to_file(prompt, fileName)
         temp.close()
         self.engine.runAndWait()
         soundFile = sf.SoundFile(fileName)
+        print(f"Time taken from zero to playback ready: {(datetime.datetime.now() - startTime).total_seconds()}s")
+        print(f"Time taken from text recognized to playback ready: {(datetime.datetime.now() - recognizedTime).total_seconds()}s")
         event.wait()
 
         if helper.subtitlesEnabled:
@@ -53,9 +56,9 @@ class PyttsxProvider(TTSProvider):
         os.remove(fileName)
         self.playbackReadyEvent.set()
 
-    def synthesizeAndPlayAudio(self, prompt, outputDeviceIndex) -> None:
+    def synthesizeAndPlayAudio(self, prompt, outputDeviceIndex, startTime, recognizedTime) -> None:
         newEvent = threading.Event()
-        threading.Thread(target=self.synthesizeAndWaitForEvent, args=(prompt,outputDeviceIndex,newEvent)).start()
+        threading.Thread(target=self.synthesizeAndWaitForEvent, args=(prompt,outputDeviceIndex,newEvent, startTime, recognizedTime)).start()
         self.eventQueue.put(newEvent)
     def waitForEvent(self):
         while True:

@@ -1,4 +1,4 @@
 
 class TTSProvider:
-    def synthesizeAndPlayAudio(self, prompt, outputDeviceIndex) -> None:
+    def synthesizeAndPlayAudio(self, prompt, outputDeviceIndex, startTime, recognizedTime) -> None:
         pass

@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 
 import helper
@@ -41,10 +42,13 @@ def translation_setup():
 
     googleTranslator = googletrans.Translator()
 def translate_if_needed(text:str, language:str) -> str:
-    print("Language recieved from process_text: " + str(language))
+    tlStartTime = datetime.datetime.now()
+    print("\nLanguage recieved from process_text: " + str(language))
     if language is None:
         language = googleTranslator.detect(text).lang
         print("Detected language with googletrans: " + language)
+        print(f"Time loss due to language detection: {(datetime.datetime.now()-tlStartTime).total_seconds()}s")
+        tlStartTime = datetime.datetime.now()
 
     language = language.lower()  # Ensure it's in lowercase.
 
@@ -60,6 +64,7 @@ def translate_if_needed(text:str, language:str) -> str:
         if language in supportedLanguageCodes or ("-" in language and language[:language.index("-")] in supportedLanguageCodes):
             print("Translating text using deepl...")
             result = deeplTranslator.translate_text(text, target_lang="EN-US")
+            print(f"Time loss due to translation: {(datetime.datetime.now() - tlStartTime).total_seconds()}s")
             return result.text
 
     print("Translating text using googletrans...")
@@ -67,11 +72,14 @@ def translate_if_needed(text:str, language:str) -> str:
         if "-" in language and language[:language.index("-")] in googletrans.LANGCODES:
             language = language[:language.index("-")]
             result = googleTranslator.translate(text, dest="en", src=language)
+            print(f"Time loss due to translation: {(datetime.datetime.now() - tlStartTime).total_seconds()}s")
             return result.text
         else:
             result = googleTranslator.translate(text, dest="en")
+            print(f"Time loss due to translation: {(datetime.datetime.now() - tlStartTime).total_seconds()}s")
             return result.text
     else:
         result = googleTranslator.translate(text, dest="en", src=language)
+        print(f"Time loss due to translation: {(datetime.datetime.now() - tlStartTime).total_seconds()}s")
         return result.text
 

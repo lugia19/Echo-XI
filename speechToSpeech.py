@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import sys
 
 from misc.obsSubtitles import *
@@ -37,15 +38,15 @@ def main():
 
 
 # I'll just use googletrans in that case.
-def process_text(recognizedText:str, language):
+def process_text(recognizedText:str, language:str, startTime:datetime.datetime, recognizedTime:datetime.datetime):
     # If you want to do anything with the text (like sending it off to chatGPT and playing back the response instead) this is where you do it.
     recognizedText = recognizedText.strip()
     if recognizedText != "":    #Ignore empty output
         translatedText = translate_if_needed(recognizedText, language)
         #translatedText contains the text in english.
-        print("Recognized and translated text: " + translatedText)
+        print("\nRecognized and (possibly) translated text: " + translatedText)
 
-        helper.ttsProvider.synthesizeAndPlayAudio(translatedText, helper.chosenOutput)
+        helper.ttsProvider.synthesizeAndPlayAudio(translatedText, helper.chosenOutput, startTime, recognizedTime)
         #Subtitle updating USED TO be here, but I moved it to the TTS providers to avoid
         #situations where the subtitles would update before the audio is actually played
         #if helper.subtitlesEnabled:

@@ -1,3 +1,4 @@
+import datetime
 import os
 from typing import Optional
 import platform
@@ -20,6 +21,7 @@ class VoskProvider(SpeechRecProvider):
     def __init__(self):
         super().__init__()
         self.type = "vosk"
+        self.recognitionStartedTime = None
         voskConfig = helper.get_provider_config(self)
 
         voskInputs = dict()
@@ -100,16 +102,19 @@ class VoskProvider(SpeechRecProvider):
         try:
             while micStream.is_active():
                 data = micStream.read(4096, exception_on_overflow=False)
-
                 if self.recognizer.AcceptWaveform(data):
+                    if self.recognitionStartedTime is None:  # Is this a good way to measure latency? I'm not sure.
+                        self.recognitionStartedTime = datetime.datetime.now()
                     recognizedText = self.recognizer.Result()[14:-3]
+                    recognizedTime = datetime.datetime.now()
                     if recognizedText != "":
                         if self.recasepuncEnabled:
                             recognizedText = recasepunc_parse(recognizedText)
-                        print("Recognized text: " + recognizedText)
+                        print("\nRecognized text: " + recognizedText)
+                        print(f"Time taken to recognize text: {(recognizedTime - self.recognitionStartedTime).total_seconds()}s")
 
                         from speechToSpeech import process_text
-                        process_text(recognizedText, self.chosenLanguage)
-                        print("\nListening for voice input...\n")
+                        process_text(recognizedText, self.chosenLanguage, self.recognitionStartedTime, recognizedTime)
+                    self.recognitionStartedTime = None
         except KeyboardInterrupt:
             exit("Interrupted by user.")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import json
 import threading
 
@@ -19,6 +20,7 @@ class AzureProvider(SpeechRecProvider):
             super().__init__()
             self.type = "azure"
             self.recognitionEndEvent = threading.Event()
+            self.recognitionStartedTime = None
             configData = helper.get_provider_config(self)
 
             azureConfigInputs = dict()
@@ -184,7 +186,7 @@ class AzureProvider(SpeechRecProvider):
 
     def recognize_loop(self):
         try:
-            #self.recognizer.recognizing.connect(lambda evt: print('RECOGNIZING: {}'.format(evt)))
+            self.recognizer.recognizing.connect(self.set_recognition_start_time)
             self.recognizer.recognized.connect(self.text_recognized)
             self.recognizer.session_stopped.connect(self.stop_rec)
             self.recognizer.canceled.connect(self.stop_rec)
@@ -195,8 +197,15 @@ class AzureProvider(SpeechRecProvider):
             self.stop_rec("keyboard interrupt")
             print("Stopping...")
 
+    def set_recognition_start_time(self, evt):
+        if self.recognitionStartedTime is None:
+            self.recognitionStartedTime = datetime.datetime.now()
+
     def text_recognized(self, evt):
-        print("Recognized text:" + evt.result.text)
+        print("\nRecognized text:" + evt.result.text)
+        recognizedTime = datetime.datetime.now()
+        print(f"Time taken to recognize text: {(recognizedTime-self.recognitionStartedTime).total_seconds()}s")
+
         from speechToSpeech import process_text
         if self.multiLingual:
             resultJson = json.loads(evt.result.json)
@@ -204,10 +213,11 @@ class AzureProvider(SpeechRecProvider):
                 return
             recognizedText = resultJson["SpeechPhrase"]["DisplayText"]
             recognizedLanguage = resultJson["SpeechPhrase"]["PrimaryLanguage"]["Language"]
-            process_text(recognizedText, recognizedLanguage)
+            process_text(recognizedText, recognizedLanguage, self.recognitionStartedTime, recognizedTime)
         else:
-            process_text(evt.result.text, self.selectedLanguage)
+            process_text(evt.result.text, self.selectedLanguage, self.recognitionStartedTime, recognizedTime)
 
+        self.recognitionStartedTime = None
     def stop_rec(self,evt):
         print('CLOSING on {}'.format(evt))
         self.recognitionEndEvent.set()

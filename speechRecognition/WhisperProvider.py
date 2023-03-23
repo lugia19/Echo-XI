@@ -1,3 +1,4 @@
+import datetime
 import os
 import queue
 import threading
@@ -15,7 +16,7 @@ class WhisperProvider(SpeechRecProvider):
     def __init__(self):
         super().__init__()
         self.type = "whisper"
-
+        self.recognitionStartedTime = None
         configData = helper.get_provider_config(self)
 
         sharedInput = dict()
@@ -169,26 +170,33 @@ class WhisperProvider(SpeechRecProvider):
             while True:
                 from speechToSpeech import process_text
                 result = self.resultQueue.get()
-                process_text(result["text"], result["lang"])
+                process_text(result["text"], result["lang"], result["start_time"], result["recognized_time"])
         except KeyboardInterrupt:
             print("Interrupted by user.")
             self.interruptEvent.set()
-        pass
+
     def recording_loop(self):
         with self.srMic as source:
             while True:
                 if self.interruptEvent.is_set():
                     break
                 audio = self.recognizer.listen(source)
+                if self.recognitionStartedTime is None:
+                    self.recognitionStartedTime = datetime.datetime.now()
                 temp = tempfile.NamedTemporaryFile(suffix=".wav", mode="wb+",delete=False)
                 temp.write(audio.get_wav_data())
-                self.audioQueue.put_nowait(temp)
+                self.audioQueue.put_nowait({
+                    "audio_data": temp,
+                    "start_time": self.recognitionStartedTime
+                })
+                self.recognitionStartedTime = None
 
     def recognition_loop(self):
         while True:
             if self.interruptEvent.is_set():
                 break
-            audioTempFile = self.audioQueue.get()
+            audioQueueElement = self.audioQueue.get()
+            audioTempFile = audioQueueElement["audio_data"]
             audioFilePath = audioTempFile.name
             audioTempFile.close()
 
@@ -220,9 +228,13 @@ class WhisperProvider(SpeechRecProvider):
                 recognizedText = openai.Audio.transcribe("whisper-1", fp).text
                 fp.close()
 
-            print("Recognized text: " + recognizedText)
+            print("\nRecognized text: " + recognizedText)
+            recognizedTime = datetime.datetime.now()
+            print(f"Time taken to recognize text: {(recognizedTime-audioQueueElement['start_time']).total_seconds()}s")
             self.resultQueue.put({
                     "text":recognizedText,
-                    "lang":audioLanguage
+                    "lang":audioLanguage,
+                    "start_time": audioQueueElement["start_time"],
+                    "recognized_time": recognizedTime
                 })
             os.remove(audioFilePath)
