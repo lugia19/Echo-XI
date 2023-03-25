@@ -1,5 +1,6 @@
 import datetime
 import os
+import zipfile
 from typing import Optional
 import platform
 
@@ -17,6 +18,18 @@ from vosk import Model, KaldiRecognizer
 import helper
 from speechRecognition.__SpeechRecProviderAbstract import SpeechRecProvider
 
+voskModelLinks = {
+    'vosk-model-en-us-0.22': 'https://alphacephei.com/vosk/models/vosk-model-en-us-0.22.zip',
+    "vosk-model-small-en-us-0.15":"https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip",
+    'vosk-model-cn-0.22': 'https://alphacephei.com/vosk/models/vosk-model-cn-0.22.zip',
+    'vosk-model-ru-0.42': 'https://alphacephei.com/vosk/models/vosk-model-ru-0.42.zip',
+    'vosk-model-fr-0.22': 'https://alphacephei.com/vosk/models/vosk-model-fr-0.22.zip',
+    'vosk-model-de-0.21': 'https://alphacephei.com/vosk/models/vosk-model-de-0.21.zip',
+    'vosk-model-es-0.42': 'https://alphacephei.com/vosk/models/vosk-model-es-0.42.zip',
+    'vosk-model-it-0.22': 'https://alphacephei.com/vosk/models/vosk-model-it-0.22.zip',
+    'vosk-model-ja-0.22': 'https://alphacephei.com/vosk/models/vosk-model-ja-0.22.zip'
+}
+
 class VoskProvider(SpeechRecProvider):
     def __init__(self):
         super().__init__()
@@ -31,25 +44,26 @@ class VoskProvider(SpeechRecProvider):
             "label": "Choose your input device"
         }
 
-        availableVoskDirs = self.list_models()
+        availableVoskDirs = self.list_downloaded_models()
 
-        while len(availableVoskDirs) == 0:
-            if helper.choose_yes_no("Could not automatically determine location of vosk model, please put it in " + os.path.join(os.getcwd(),"models","vosk") +
-                                    "\nWould you like to open the download page for vosk models in your browser?"):
-                import webbrowser
-                webbrowser.open("https://alphacephei.com/vosk/models", new=2, autoraise=True)
-            if not helper.choose_yes_no("Would you like to try again?"):
-                exit()
-            availableVoskDirs = self.list_models()
 
         dirNames = list()
-
         for directory in availableVoskDirs:
-            dirNames.append(directory[directory.rfind("\\")+1:])
+            dirName = directory[directory.rfind("\\")+1:]
+            dirNames.append(dirName)
+
+        linkNames = list()
+        for linkName in voskModelLinks.keys():
+            if linkName not in dirNames:
+                linkNames.append(linkName + " (download)")
+
+        jointList = list()
+        jointList.extend(dirNames)
+        jointList.extend(linkNames)
 
         voskModelPathInput = {
             "widget_type": "list",
-            "options": dirNames,
+            "options": jointList,
             "label": "Choose which vosk model to use"
         }
 
@@ -68,7 +82,19 @@ class VoskProvider(SpeechRecProvider):
             webbrowser.open("https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes", new=2, autoraise=True)
         userInputs = helper.ask_fetch_from_and_update_config(voskInputs, voskConfig, "Vosk settings")
 
-        voskModelPath = os.path.join(os.getcwd(),"models","vosk",voskConfig["model_path"])
+
+        if voskConfig["model_path"] in dirNames:
+            voskModelPath = availableVoskDirs[dirNames.index(voskConfig["model_path"])]
+        else:
+            modelName = voskConfig["model_path"].replace(" (download)","")
+            link = voskModelLinks[modelName]
+            downloadPath = os.path.join("models", "vosk", modelName + ".zip")
+            helper.show_text("Download will start once you press OK...")
+            helper.download_file_with_progress(link, downloadPath)
+            with zipfile.ZipFile(downloadPath, 'r') as zip_ref:
+                zip_ref.extractall(os.path.join("models", "vosk"))  #All the vosk models already contain a folder named correctly
+            voskModelPath = downloadPath[:downloadPath.rfind(".zip")]
+            os.remove(downloadPath)
 
         self.model = Model(voskModelPath)
 
@@ -79,8 +105,8 @@ class VoskProvider(SpeechRecProvider):
         self.recognizer:KaldiRecognizer = KaldiRecognizer(self.model, self.microphoneInfo["defaultSampleRate"])
 
     @staticmethod
-    def list_models() -> list[str]:
-        voskModelsDir = os.path.join(os.getcwd(), "models", "vosk")
+    def list_downloaded_models() -> list[str]:
+        voskModelsDir = os.path.join("models", "vosk")
         print("Looking for available vosk models in " +voskModelsDir+"...")
         eligibleDirectories = list()
         for directory in os.listdir(voskModelsDir):

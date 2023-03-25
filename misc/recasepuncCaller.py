@@ -1,17 +1,28 @@
 import os
+import zipfile
+
 from misc.recasepunc import CasePuncPredictor, WordpieceTokenizer
 import helper
 predictor:CasePuncPredictor
+
+recasepuncLinks = {
+    "vosk-recasepunc-en-0.22":"https://alphacephei.com/vosk/models/vosk-recasepunc-en-0.22.zip",
+    "vosk-recasepunc-ru-0.22":"https://alphacephei.com/vosk/models/vosk-recasepunc-ru-0.22.zip",
+    "vosk-recasepunc-de-0.21":"https://alphacephei.com/vosk/models/vosk-recasepunc-de-0.21.zip",
+    "it.22000":"https://github.com/CoffeePerry/recasepunc/releases/download/v0.1.0/it.22000",
+    "zh.24000":"https://github.com/benob/recasepunc/releases/download/0.3/zh.24000",
+    "fr.22000":"https://github.com/benob/recasepunc/releases/download/0.3/fr.22000"
+}
 def recasepunc_setup(languageCode:str) -> bool:
     # This variable only exists to make pycharm figure out that the import is used.
     uselessVar: WordpieceTokenizer
-
+    recasepuncModelDir = os.path.join("models","recasepunc")
 
     recasePuncInputs = dict()
 
     eligibleDirectoriesAndfiles = list_recasepunc_models()
     while len(eligibleDirectoriesAndfiles) == 0:
-        if helper.choose_yes_no("Could not find any recasepunc models in " + os.path.join(os.getcwd(), "models", "recasepunc") +
+        if helper.choose_yes_no("Could not find any recasepunc models in " + recasepuncModelDir +
                                 "\nWould you like to open the two download pages for recasepunc models in your browser?"):
             import webbrowser
             webbrowser.open("https://alphacephei.com/vosk/models", new=2, autoraise=True)
@@ -21,14 +32,25 @@ def recasepunc_setup(languageCode:str) -> bool:
         eligibleDirectoriesAndfiles = list_recasepunc_models()
 
 
+
     dirOrFileNames = list()
     for dirOrFile in eligibleDirectoriesAndfiles:
-        dirOrFileNames.append(dirOrFile[dirOrFile.rfind("\\")+1:])
+        dirName = dirOrFile[dirOrFile.rfind("\\")+1:]
+        dirOrFileNames.append(dirName)
+
+    linkNames = list()
+    for linkName in recasepuncLinks.keys():
+        if linkName not in dirOrFileNames:
+            linkNames.append(linkName + " (download)")
+
+    jointList = list()
+    jointList.extend(dirOrFileNames)
+    jointList.extend(linkNames)
 
     recasePuncModelInput = {
         "widget_type": "list",
         "label": "Recasepunc model",
-        "options": dirOrFileNames
+        "options": jointList
     }
 
     recasePuncEnabledInput = {
@@ -45,8 +67,25 @@ def recasepunc_setup(languageCode:str) -> bool:
     if not userInputs["enabled"]:
         return False #Exit immediately
 
-    recasePuncDirOrFile = os.path.join("models", "recasepunc", userInputs["model_path"])
-    repuncModelPath = ""
+    if userInputs["model_path"] in dirOrFileNames:
+        recasePuncDirOrFile = eligibleDirectoriesAndfiles[dirOrFileNames.index(userInputs["model_path"])]
+    else:
+        #Gotta download it
+        modelName = userInputs["model_path"].replace(" (download)","")
+        link = recasepuncLinks[modelName]
+        downloadPath = os.path.join(recasepuncModelDir, modelName)
+        if "vosk" in link:
+            downloadPath += ".zip"
+        helper.show_text("Download will start once you press OK...")
+        helper.download_file_with_progress(link, downloadPath)
+        if "vosk" in link:
+            with zipfile.ZipFile(downloadPath, 'r') as zip_ref:
+                zip_ref.extractall(recasepuncModelDir)  #All the vosk models already contain a folder named correctly
+            recasePuncDirOrFile = downloadPath[:downloadPath.rfind(".zip")]
+            os.remove(downloadPath)
+        else:
+            recasePuncDirOrFile = downloadPath
+
     if os.path.isdir(recasePuncDirOrFile):
         filesInDir = os.listdir(recasePuncDirOrFile)
         if "checkpoint" in filesInDir:
@@ -63,7 +102,8 @@ def recasepunc_setup(languageCode:str) -> bool:
                 }
                 chosenFile = helper.ask_fetch_from_and_update_config(chooseFileInput, configData,"Choose a recasepunc model")["model_file"]
                 repuncModelPath = os.path.join(recasePuncDirOrFile, chosenFile)
-
+    else:
+        repuncModelPath = recasePuncDirOrFile
     global predictor
     from misc.recasepunc import default_flavors
     if languageCode in default_flavors.keys():

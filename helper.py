@@ -5,8 +5,10 @@ import os
 import platform
 from typing import Mapping
 import tkinter as tk
+from tqdm import tqdm
 from tkinter import ttk
 import keyring
+import requests
 
 backgroundColor = "#2b2b2b"
 buttonBackground = "#424242"
@@ -72,12 +74,20 @@ defaultConfig: dict[str, str | int| list|float] = {
                 "service_region": "",
                 "language_list": []
             }
+        },
+        "stored_choices" : {
+            "testPrompt": True
         }
 }
 
 _configData:dict = {}
 
+
+
 def choose_yes_no(prompt: str, trueOption: str = "Yes", falseOption: str = "No") -> bool:
+    if prompt in _configData["stored_choices"]:
+        return _configData["stored_choices"][prompt]
+
     if useGUI:
         def on_yes_click():
             result[0] = True
@@ -104,17 +114,33 @@ def choose_yes_no(prompt: str, trueOption: str = "Yes", falseOption: str = "No")
         no_button = ttk.Button(window, text=falseOption, command=on_no_click)
         no_button.grid(row=1, column=1, padx=10, pady=10)
 
+        # Create and place the "Don't ask again" checkbox
+        dont_ask_var = tk.BooleanVar()
+        dont_ask_checkbox = ttk.Checkbutton(window, text="Remember my choice", variable=dont_ask_var)
+        dont_ask_checkbox.grid(row=2, column=0, columnspan=2)
+
         # Center the window
         window.eval('tk::PlaceWindow . center')
         result = [False]
         window.mainloop()
+        if dont_ask_var.get():
+            _configData["stored_choices"][prompt] = result[0]
+            update_config_file()
         return result[0]
     else:
         print(prompt)
         while True:
             userInput = input(trueOption + " or " + falseOption + "?")
             if (trueOption.lower().find(userInput.lower()) == 0) ^ (falseOption.lower().find(userInput.lower()) == 0):
+                while True:
+                    dontAskInput = input("Don't ask again and always use this result? (yes or no): ")
+                    if ("yes".find(dontAskInput.lower()) == 0) ^ ("no".find(dontAskInput.lower()) == 0):
+                        if "yes".find(dontAskInput.lower()) == 0:
+                            _configData["stored_choices"][prompt] = trueOption.lower().find(userInput.lower()) == 0
+                            update_config_file()
+                        break
                 return trueOption.lower().find(userInput.lower()) == 0
+
 
 def choose_int(prompt, minValue, maxValue) -> int:
     print(prompt)
@@ -532,3 +558,12 @@ def _ask_cli(innerConfig,title="Settings"):
                 innerResult[key] = input(f"{value['label']}: ")
 
     return innerResult
+
+def download_file_with_progress(url, save_path):
+    response = requests.get(url, stream=True)
+    total_size = int(response.headers.get('content-length', 0))
+    chunk_size = 1024
+
+    with open(save_path, 'wb') as file:
+        for data in tqdm(response.iter_content(chunk_size), total=total_size // chunk_size, unit='KB'):
+            file.write(data)
