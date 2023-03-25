@@ -54,7 +54,7 @@ Everywhere else:
 
 
 
-If you're looking to use the vosk/recasepunc speech recognition, you will need to download the necessary models.
+If you're looking to use the vosk/recasepunc and you need something besides the included (downloadable) models, read on.
 
 Vosk models can be found [here](https://alphacephei.com/vosk/models). The same page also offers some recasepunc models. For additional ones, you can look in the recasepunc repo.
 
