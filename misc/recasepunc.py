@@ -52,7 +52,7 @@ class ConfigClass(argparse.Namespace):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-        assert self.lang in ['fr', 'en', 'zh', 'it']
+        assert self.lang in ['fr', 'en', 'zh', 'tr', 'pt', 'de', 'ru']
 
         if 'lang' in kwargs and ('flavor' not in kwargs or kwargs['flavor'] is None):
             self.flavor = default_flavors[self.lang]
