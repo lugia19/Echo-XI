@@ -77,7 +77,7 @@ class VoskProvider(SpeechRecProvider):
         voskInputs["language"] = voskLanguageInput
 
         if helper.choose_yes_no("You must specify the language you will be speaking as a two letter ISO_639-1 code."
-                                "\nWould you like to open the list of ISO_639-1 codes in your browser?"):
+                                "\nWould you like to open the list of ISO_639-1 codes in your browser?", enableRemember=True):
             import webbrowser
             webbrowser.open("https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes", new=2, autoraise=True)
         userInputs = helper.ask_fetch_from_and_update_config(voskInputs, voskConfig, "Vosk settings")

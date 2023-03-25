@@ -21,17 +21,6 @@ def recasepunc_setup(languageCode:str) -> bool:
     recasePuncInputs = dict()
 
     eligibleDirectoriesAndfiles = list_recasepunc_models()
-    while len(eligibleDirectoriesAndfiles) == 0:
-        if helper.choose_yes_no("Could not find any recasepunc models in " + recasepuncModelDir +
-                                "\nWould you like to open the two download pages for recasepunc models in your browser?"):
-            import webbrowser
-            webbrowser.open("https://alphacephei.com/vosk/models", new=2, autoraise=True)
-            webbrowser.open("https://github.com/benob/recasepunc", new=2, autoraise=True)
-        if not helper.choose_yes_no("Would you like to try again?"):
-            return False
-        eligibleDirectoriesAndfiles = list_recasepunc_models()
-
-
 
     dirOrFileNames = list()
     for dirOrFile in eligibleDirectoriesAndfiles:
@@ -123,13 +112,6 @@ def list_recasepunc_models() -> list[str]:
     for directory in os.listdir(modelsDir):
         eligibleDirectoriesAndfiles.append(os.path.join(modelsDir, directory))
 
-    if len(eligibleDirectoriesAndfiles) == 0:
-        if helper.choose_yes_no("Could not automatically determine location of recasepunc model, please put it in " + modelsDir +
-                                "\nWould you like to open the two download pages for recasepunc models in your browser?"):
-            import webbrowser
-            webbrowser.open("https://alphacephei.com/vosk/models", new=2, autoraise=True)
-            webbrowser.open("https://github.com/benob/recasepunc", new=2, autoraise=True)
-        exit()
     return eligibleDirectoriesAndfiles
 
 def recasepunc_parse(textToParse:str) -> str:

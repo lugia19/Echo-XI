@@ -75,17 +75,15 @@ defaultConfig: dict[str, str | int| list|float] = {
                 "language_list": []
             }
         },
-        "stored_choices" : {
-            "testPrompt": True
-        }
+        "stored_choices" : {}
 }
 
 _configData:dict = {}
 
 
 
-def choose_yes_no(prompt: str, trueOption: str = "Yes", falseOption: str = "No") -> bool:
-    if prompt in _configData["stored_choices"]:
+def choose_yes_no(prompt: str, trueOption: str = "Yes", falseOption: str = "No", enableRemember:bool=False) -> bool:
+    if enableRemember and prompt in _configData["stored_choices"]:
         return _configData["stored_choices"][prompt]
 
     if useGUI:
@@ -116,14 +114,15 @@ def choose_yes_no(prompt: str, trueOption: str = "Yes", falseOption: str = "No")
 
         # Create and place the "Don't ask again" checkbox
         dont_ask_var = tk.BooleanVar()
-        dont_ask_checkbox = ttk.Checkbutton(window, text="Remember my choice", variable=dont_ask_var)
-        dont_ask_checkbox.grid(row=2, column=0, columnspan=2)
+        if enableRemember:
+            dont_ask_checkbox = ttk.Checkbutton(window, text="Remember my choice", variable=dont_ask_var)
+            dont_ask_checkbox.grid(row=2, column=0, columnspan=2)
 
         # Center the window
         window.eval('tk::PlaceWindow . center')
         result = [False]
         window.mainloop()
-        if dont_ask_var.get():
+        if dont_ask_var.get() and enableRemember:
             _configData["stored_choices"][prompt] = result[0]
             update_config_file()
         return result[0]
@@ -132,13 +131,14 @@ def choose_yes_no(prompt: str, trueOption: str = "Yes", falseOption: str = "No")
         while True:
             userInput = input(trueOption + " or " + falseOption + "?")
             if (trueOption.lower().find(userInput.lower()) == 0) ^ (falseOption.lower().find(userInput.lower()) == 0):
-                while True:
-                    dontAskInput = input("Don't ask again and always use this result? (yes or no): ")
-                    if ("yes".find(dontAskInput.lower()) == 0) ^ ("no".find(dontAskInput.lower()) == 0):
-                        if "yes".find(dontAskInput.lower()) == 0:
-                            _configData["stored_choices"][prompt] = trueOption.lower().find(userInput.lower()) == 0
-                            update_config_file()
-                        break
+                if enableRemember:
+                    while True:
+                        dontAskInput = input("Don't ask again and always use this result? (yes or no): ")
+                        if ("yes".find(dontAskInput.lower()) == 0) ^ ("no".find(dontAskInput.lower()) == 0):
+                            if "yes".find(dontAskInput.lower()) == 0:
+                                _configData["stored_choices"][prompt] = trueOption.lower().find(userInput.lower()) == 0
+                                update_config_file()
+                            break
                 return trueOption.lower().find(userInput.lower()) == 0
 
 

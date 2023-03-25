@@ -108,7 +108,7 @@ class AzureProvider(SpeechRecProvider):
                     }
                 }
 
-                if helper.choose_yes_no("Would you like to view the list of supported languages in your browser?"):
+                if helper.choose_yes_no("Would you like to view the list of supported languages in your browser?", enableRemember=True):
                     import webbrowser
                     webbrowser.open("https://learn.microsoft.com/en-us/azure/cognitive-services/speech-service/language-support?tabs=stt", new=2, autoraise=True)
                 userInput = helper.ask_fetch_from_and_update_config(azureTranslationInputs, configData,"Azure multilanguage settings")
