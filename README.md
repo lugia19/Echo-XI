@@ -55,6 +55,7 @@ Everywhere else:
 
 If you would like to use the voice on something like discord, use [VB-Cable](https://vb-audio.com/Cable/). In the script select your normal microphone as input, `VB-Cable input` as the output, then on discord select `VB-Cable output` as the input. Yes, it's a little confusing.
 
+## Notes on vosk/recasepunc
 
 If you're looking to use the vosk/recasepunc and you need something besides the included (downloadable) models, read on.
 
