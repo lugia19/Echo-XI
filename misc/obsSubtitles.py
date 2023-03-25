@@ -52,28 +52,28 @@ def subtitle_setup():
                 return
 
     textItemList = list()
-
     while len(textItemList) == 0:
-        currentScene = wsClient.get_current_program_scene().current_program_scene_name
-        itemList = wsClient.get_scene_item_list(currentScene).scene_items
+        for scene in wsClient.get_scene_list().scenes:
+            itemList = wsClient.get_scene_item_list(scene["sceneName"]).scene_items
+            for item in itemList:
+                if item["inputKind"] == "text_gdiplus_v2" and item not in textItemList:
+                    textItemList.append(item)
 
-        for item in itemList:
-            if item["inputKind"] == "text_gdiplus_v2":
-                textItemList.append(item["sourceName"])
         if len(textItemList) == 0:
-            if not helper.choose_yes_no("No text items found in the current scene. Would you like to try again?"):
+            if not helper.choose_yes_no("No text items found in any scene. Would you like to try again?"):
                 return
 
-    textItemInput = {"text_item": {
+    textItemInput = {
+        "text_item": {
             "widget_type": "list",
-            "options": textItemList,
+            "options": [item["sourceName"] for item in textItemList],
             "label": "Text item for subtitles"
         }
     }
     chosenTextItemName = helper.ask_fetch_from_and_update_config(textItemInput, obsConfig, "Choose a text object")["text_item"]
+
     global textItem
-    currentScene = wsClient.get_current_program_scene().current_program_scene_name
-    for item in wsClient.get_scene_item_list(currentScene).scene_items:
+    for item in textItemList:
         if item["sourceName"] == chosenTextItemName:
             textItem = item
             break
@@ -84,6 +84,15 @@ def subtitle_setup():
     wsClient.set_input_settings(textItem["sourceName"], settings, True)
 
 def subtitle_update(subtitleText:str):
+    currentScene = wsClient.get_current_program_scene().current_program_scene_name
+    itemList = wsClient.get_scene_item_list(currentScene).scene_items
+    textItemNameList = list()
+    for item in itemList:
+        if item["inputKind"] == "text_gdiplus_v2" and item not in textItemNameList:
+            textItemNameList.append(item["sourceName"])
+    if textItem["sourceName"] not in textItemNameList:
+        return
+
     print("Setting OBS text...")
     wrappedLines = textwrap.wrap(subtitleText, 45)
     wrappedText = ""
