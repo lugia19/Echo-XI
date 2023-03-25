@@ -133,7 +133,8 @@ class VoskProvider(SpeechRecProvider):
                         self.recognitionStartedTime = datetime.datetime.now()
                     recognizedText = self.recognizer.Result()[14:-3]
                     recognizedTime = datetime.datetime.now()
-                    if recognizedText != "":
+                    if recognizedText != "" and recognizedText != "the":
+                        #Why filter out "the"? Because vosk has a weird tendency to recognize silence as "the" and nobody is going to literally just say "The" and nothing else, come on.
                         if self.recasepuncEnabled:
                             recognizedText = recasepunc_parse(recognizedText)
                         print("\nRecognized text: " + recognizedText)
