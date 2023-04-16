@@ -52,8 +52,9 @@ defaultConfig: dict[str, str | int| list|float] = {
         },
         "text_to_speech_config": {
             "ElevenlabsProvider": {
-                "api_key": "",
-                "voice_id": ""
+                "voice_id": "",
+                "stability": 80,
+                "clarity": 30
             },
             "PyttsxProvider": {
                 "voice_name": ""

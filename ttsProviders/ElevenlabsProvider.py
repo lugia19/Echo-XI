@@ -25,17 +25,35 @@ class ElevenlabsProvider(TTSProvider):
                     "widget_type": "textbox",
                     "label": "Elevenlabs API Key",
                     "hidden": True
+                },
+            "stability":
+                {
+                    "widget_type": "textbox",
+                    "label": "Stability (Between 0% and 100%, lower is more expressive)",
+                    "value_type": "int",
+                    "min_value": 0,
+                    "max_value": 100
+                },
+            "clarity":
+                {
+                    "widget_type": "textbox",
+                    "label": "Clarity+similarity boost (Between 0% and 100%, higher is clearer)",
+                    "value_type": "int",
+                    "min_value": 0,
+                    "max_value": 100
                 }
         }
 
+        userData = helper.ask_fetch_from_and_update_config(apiKeyInput, configData,"Elevenlabs settings")
         while True:
-            user = ElevenLabsUser(helper.ask_fetch_from_and_update_config(apiKeyInput, configData,"Elevenlabs settings")["xi_api_key"])
+            user = ElevenLabsUser(userData["xi_api_key"])
             try:
                  voiceList = user.get_available_voices()
                  break
             except requests.exceptions.HTTPError:
                 if not helper.choose_yes_no("Error! API Key incorrect or expired. Try again?"):
                     exit()
+                userData = helper.ask_fetch_from_and_update_config(apiKeyInput, configData, "Elevenlabs settings")
 
         voiceStringList = list()
         for voice in voiceList:
@@ -52,8 +70,7 @@ class ElevenlabsProvider(TTSProvider):
         voiceID = helper.ask_fetch_from_and_update_config(voiceInput, configData,"Elevenlabs voice picker")["voice_id"]
         voiceID = voiceID[voiceID.find("(")+1:voiceID.find(")")]
         self.ttsVoice = user.get_voice_by_ID(voiceID)
-
-        helper.update_provider_config(self, configData)
+        self.ttsVoice.edit_settings(stability=userData["stability"]/100, similarity_boost=userData["clarity"]/100)
         threading.Thread(target=self.waitForPlaybackReady).start()
 
 
