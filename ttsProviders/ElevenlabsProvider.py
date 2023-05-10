@@ -41,7 +41,18 @@ class ElevenlabsProvider(TTSProvider):
                     "value_type": "int",
                     "min_value": 0,
                     "max_value": 100
-                }
+                },
+            "latency_optimization_level": {
+                "widget_type": "list",
+                "label": "Choose a latency optimization level. Each level lowers the latency and the audio quality.",
+                "options": [
+                    "0: Disabled",
+                    "1: 50% of maximum improvement (recommended)",
+                    "2: 75% of maximum improvement",
+                    "3: 100% of maximum improvement",
+                    "4: 100% + disabled text normalizer (not recommend, can mispronounce numbers and dates)"
+                ]
+            }
         }
 
         userData = helper.ask_fetch_from_and_update_config(apiKeyInput, configData,"Elevenlabs settings")
@@ -71,6 +82,8 @@ class ElevenlabsProvider(TTSProvider):
         voiceID = voiceID[voiceID.find("(")+1:voiceID.find(")")]
         self.ttsVoice = user.get_voice_by_ID(voiceID)
         self.ttsVoice.edit_settings(stability=userData["stability"]/100, similarity_boost=userData["clarity"]/100)
+        self.latencyLevel = int(userData["latency_optimization_level"][:1])
+
         threading.Thread(target=self.waitForPlaybackReady).start()
 
 

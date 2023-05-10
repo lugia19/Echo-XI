@@ -54,7 +54,8 @@ defaultConfig: dict[str, str | int| list|float] = {
             "ElevenlabsProvider": {
                 "voice_id": "",
                 "stability": 80,
-                "clarity": 30
+                "clarity": 30,
+                "latency_optimization_level":"1: 50% of maximum improvement (recommended)"
             },
             "PyttsxProvider": {
                 "voice_name": ""
