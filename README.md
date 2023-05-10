@@ -53,8 +53,11 @@ Everywhere else:
 6) Run it.
 
 
+If you would like to use the voice on something like discord, use [VB-Cable](https://vb-audio.com/Cable/). In the script select your normal microphone as input, `VB-Cable input` as the output, then on discord select `VB-Cable output` as the input. Yes, it's a little confusing.
 
-If you're looking to use the vosk/recasepunc speech recognition, you will need to download the necessary models.
+## Notes on vosk/recasepunc
+
+If you're looking to use the vosk/recasepunc and you need something besides the included (downloadable) models, read on.
 
 Vosk models can be found [here](https://alphacephei.com/vosk/models). The same page also offers some recasepunc models. For additional ones, you can look in the recasepunc repo.
 
@@ -79,6 +82,5 @@ speechToSpeech.py
 ```
 
 For everything else, simply run the script and follow the instructions.
-
 
 If you would like to use the voice on something like discord, use [VB-Cable](https://vb-audio.com/Cable/). In the script select your normal microphone as input, `VB-Cable input` as the output, then on discord select `VB-Cable output` as the input. Yes, it's a little confusing.
