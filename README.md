@@ -1,4 +1,4 @@
-# Speech to text to speech
+# Echo-XI
 
 ## Info
 
@@ -13,7 +13,7 @@ It offers three separate speech recognition services:
 - Azure speech recognition
 - Whisper, both running locally (**now using faster-whisper for faster recognition and lower VRAM usage**) and through openAI's API
 
-In addition, it automatically translates the output into a language of the user's choosing, if the user is speaking a different language.
+In addition, it automatically translates the output into a language of the user's choosing (from those supported by ElevenLabs' multilingual model), if the user is speaking a different language.
 
 Each speech recognition provider has different language support, so be sure to read the details.
 
