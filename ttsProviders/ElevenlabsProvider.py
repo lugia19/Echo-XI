@@ -1,9 +1,6 @@
 import datetime
-import io
 import queue
 import threading
-import wave
-
 import requests.exceptions
 from elevenlabslib import ElevenLabsUser
 
@@ -29,7 +26,7 @@ class ElevenlabsProvider(TTSProvider):
             "stability":
                 {
                     "widget_type": "textbox",
-                    "label": "Stability (Between 0% and 100%, lower is more expressive)",
+                    "label": "Stability\nBetween 0% and 100%, lower is more expressive",
                     "value_type": "int",
                     "min_value": 0,
                     "max_value": 100
@@ -37,14 +34,14 @@ class ElevenlabsProvider(TTSProvider):
             "clarity":
                 {
                     "widget_type": "textbox",
-                    "label": "Clarity+similarity boost (Between 0% and 100%, higher is clearer)",
+                    "label": "Clarity+similarity boost\nBetween 0% and 100%, higher is clearer",
                     "value_type": "int",
                     "min_value": 0,
                     "max_value": 100
                 },
             "latency_optimization_level": {
                 "widget_type": "list",
-                "label": "Latency optimization level (Trades quality for latency)",
+                "label": "Latency optimization level\nTrades quality for latency",
                 "options": [
                     "0","1","2","3","4"
                 ],

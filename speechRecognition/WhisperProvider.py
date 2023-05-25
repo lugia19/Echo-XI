@@ -5,11 +5,11 @@ import queue
 import threading
 
 import speech_recognition as sr
+import torch.cuda
 import whisper.tokenizer
 import openai
 import helper
 from speechRecognition.__SpeechRecProviderAbstract import SpeechRecProvider
-import whisper
 import faster_whisper
 class WhisperProvider(SpeechRecProvider):
     #Inspired by this repo https://github.com/mallorbc/whisper_mic/blob/main/mic.py
@@ -30,12 +30,12 @@ class WhisperProvider(SpeechRecProvider):
         runMode = {
             "widget_type": "list",
             "options": runOptions,
-            "label": "Choose which mode you'd like"
+            "label": "Would you like to run the model locally or through the API?"
         }
 
         pauseTimeInput = {
             "widget_type": "textbox",
-            "label": "Pause time (How long in seconds you have to pause before a sentence is considered over)",
+            "label": "Seconds of silence required for a sentence to be over",
             "value_type":"float",
             "min_value": 0,
             "max_value": 10
@@ -43,7 +43,7 @@ class WhisperProvider(SpeechRecProvider):
 
         energyThresholdInput = {
             "widget_type": "textbox",
-            "label": "Energy threshold (How loud you need to be in order for your voice to be detected)",
+            "label": "Loudness threshold for detection",
             "value_type":"int",
             "min_value": 0,
             "max_value": 999
@@ -51,7 +51,7 @@ class WhisperProvider(SpeechRecProvider):
 
         dynamicThresholdInput = {
             "widget_type": "checkbox",
-            "label": "Dynamic energy threshold (Whether the energy threshold changes based on the detected background noise)"
+            "label": "Dynamic loudness threshold based on background noise"
         }
 
         sharedInput["input_device"] = inputDeviceInput
@@ -73,11 +73,11 @@ class WhisperProvider(SpeechRecProvider):
 
         if self.runLocal:
             localInputs = dict()
-            modelOptions = ["Base (1GB)", "Small (2GB)", "Medium (5GB)", "Large (10GB)"]
+            modelOptions = ["Base (1GB)", "Small (2GB)", "Medium (3GB)", "Large-v2 (5GB)"]
             modelInput = {
                 "widget_type" : "list",
                 "options": modelOptions,
-                "label": "Choose a model size (check the VRAM requirements)"
+                "label": "Model size\nCheck the VRAM requirements\nLarger models are slower but accurate"
             }
 
             multilingualInput = {
@@ -103,8 +103,8 @@ class WhisperProvider(SpeechRecProvider):
 
                 languageOverrideInput = {
                     "widget_type": "list",
-                    "label": "Manually specify speaking language"
-                             "\n(Only used if automatic detection is disabled)",
+                    "label": "Manually specified speaking language"
+                             "\nOnly used if automatic detection is disabled",
                     "options":languageList
                 }
 
@@ -113,8 +113,9 @@ class WhisperProvider(SpeechRecProvider):
                     "label": "Automatic language detection"
                 }
 
-                multiLingualConfig["language_override"] = languageOverrideInput
                 multiLingualConfig["automatic_detection"] = automaticDetectionInput
+                multiLingualConfig["language_override"] = languageOverrideInput
+
                 userLocalInput = helper.ask_fetch_from_and_update_config(multiLingualConfig, configData, "Whisper multilingual config")
                 if not userLocalInput["automatic_detection"]:
                     #User wants to override the language detection
@@ -133,7 +134,10 @@ class WhisperProvider(SpeechRecProvider):
             modelBaseName = chosenModel[:chosenModel.find(" ")].lower()
             if not self.useMultiLingual and "Large" not in chosenModel:
                 modelBaseName += ".en"
-            self.model = faster_whisper.WhisperModel(modelBaseName, device="cuda", compute_type="float16")
+
+            if not (torch.cuda.is_available()):
+                helper.show_text("You do not currently have a CUDA capable device. If you have an NVIDIA GPU, please install a recent CUDA version.")
+            self.model = faster_whisper.WhisperModel(modelBaseName, device="auto", compute_type="float16")
 
             #self.model = whisper.load_model(modelBaseName)
         else:
