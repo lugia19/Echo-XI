@@ -81,7 +81,15 @@ def translate_if_needed(text:str, language:str) -> str:
 
         if language in supportedLanguageCodes or ("-" in language and language[:language.index("-")] in supportedLanguageCodes):
             print("Translating text using deepl...")
-            result = deeplTranslator.translate_text(text, target_lang="EN-US")
+            deepLTargetLang = targetLanguage.upper()
+
+            #Ensure we don't run into trouble with the deprecated language codes
+            if deepLTargetLang == "EN":
+                deepLTargetLang = "EN-US"
+            if deepLTargetLang == "PT":
+                deepLTargetLang = "PT-BR"
+
+            result = deeplTranslator.translate_text(text, target_lang=deepLTargetLang)
             print(f"Time loss due to translation: {(datetime.datetime.now() - tlStartTime).total_seconds()}s")
             return result.text
 
@@ -89,15 +97,15 @@ def translate_if_needed(text:str, language:str) -> str:
     if language not in googletrans.LANGCODES:
         if "-" in language and language[:language.index("-")] in googletrans.LANGCODES:
             language = language[:language.index("-")]
-            result = googleTranslator.translate(text, dest="en", src=language)
+            result = googleTranslator.translate(text, dest=targetLanguage, src=language)
             print(f"Time loss due to translation: {(datetime.datetime.now() - tlStartTime).total_seconds()}s")
             return result.text
         else:
-            result = googleTranslator.translate(text, dest="en")
+            result = googleTranslator.translate(text, dest=targetLanguage)
             print(f"Time loss due to translation: {(datetime.datetime.now() - tlStartTime).total_seconds()}s")
             return result.text
     else:
-        result = googleTranslator.translate(text, dest="en", src=language)
+        result = googleTranslator.translate(text, dest=targetLanguage, src=language)
         print(f"Time loss due to translation: {(datetime.datetime.now() - tlStartTime).total_seconds()}s")
         return result.text
 

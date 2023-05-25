@@ -44,13 +44,16 @@ class ElevenlabsProvider(TTSProvider):
                 },
             "latency_optimization_level": {
                 "widget_type": "list",
-                "label": "Choose a latency optimization level. Each level lowers the latency and the audio quality.",
+                "label": "Latency optimization level (Trades quality for latency)",
                 "options": [
-                    "0: Disabled",
-                    "1: 50% of maximum improvement (recommended)",
-                    "2: 75% of maximum improvement",
-                    "3: 100% of maximum improvement",
-                    "4: 100% + disabled text normalizer (not recommend, can mispronounce numbers and dates)"
+                    "0","1","2","3","4"
+                ],
+                "descriptions": [
+                    "Disabled (highest quality and highest latency)",
+                    "50% of maximum improvement (recommended)",
+                    "75% of maximum improvement",
+                    "100% of maximum improvement",
+                    "100% + disabled text normalizer (not recommend, can mispronounce numbers and dates)"
                 ]
             }
         }

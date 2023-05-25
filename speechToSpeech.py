@@ -79,7 +79,7 @@ def setup():
 
 
 
-               "Can either can either be used locally or online through their API (at 0.006$/minute of speech)."
+               "Can either can either be used locally (via faster-whisper) or online through their API (at 0.006$/minute of speech)."
                "\nThe local version offers a few different model sizes, whereas the API always uses the largest."
                "\nAttempting to run the largest model size locally, assuming you even have an NVIDIA GPU with enough VRAM for it, will be pretty slow."
                "\nI recommend sticking to the medium one at most, but you should try it and see how well it works on your machine."

@@ -65,7 +65,7 @@ class WhisperProvider(SpeechRecProvider):
         self.microphoneInfo = helper.get_portaudio_device_info_from_name(userInput["input_device"])
         self.srMic = sr.Microphone(device_index=self.microphoneInfo["index"], sample_rate=int(self.microphoneInfo["defaultSampleRate"]))
         self.recognizer = sr.Recognizer()
-
+        self.languageOverride = ""
         self.runLocal = runOptions.index(userInput["run_mode"]) == 0
 
 

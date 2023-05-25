@@ -490,7 +490,11 @@ def _ask_ui(config, title="Settings"):
             if "descriptions" in value:
                 description_text = tk.Text(frame, height=15, width=60, wrap=tk.WORD, background='#2b2b2b', foreground='white')
                 description_text.grid(row=row + 1, column=1, sticky=(tk.W, tk.E))
-                description_text.insert(tk.END, value["descriptions"][default_index])
+                if len(value["descriptions"]) == 1:
+                    # If there's only one description, use the same one for all options.
+                    description_text.insert(tk.END, value["descriptions"][0])
+                else:
+                    description_text.insert(tk.END, value["descriptions"][default_index])
                 description_text.config(state=tk.DISABLED)
                 value["description_text"] = description_text
                 row += 1
@@ -544,7 +548,7 @@ def _ask_cli(innerConfig,title="Settings"):
 
         if value["widget_type"] == "list":
             options = value["options"]
-            if "descriptions" in value:
+            if "descriptions" in value and len(value["descriptions"]) > 1:
                 options = [f"{option} - {desc}" for option, desc in zip(value["options"], value["descriptions"])]
             innerResult[key] = choose_from_list_of_strings(value["label"], options)
 
