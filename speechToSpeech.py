@@ -3,6 +3,8 @@ from __future__ import annotations
 import datetime
 import sys
 
+import pyaudio
+
 from misc.obsSubtitles import *
 from misc.translation import *
 import helper
@@ -60,10 +62,13 @@ def setup():
     helper.setup_config()
 
     configQuestions = dict()
+    defaultDevice = pyaudio.PyAudio().get_default_output_device_info()
+    defaultDevice = f"{defaultDevice['name']} - {defaultDevice['index']}"
     outputDeviceQuestion = {
         "widget_type": "list",
         "options": helper.get_list_of_portaudio_devices("output"),
-        "label": "Output Device"
+        "label": "Output Device",
+        "default_value": defaultDevice
     }
 
     srProviderQuestion = {

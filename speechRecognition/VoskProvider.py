@@ -38,10 +38,13 @@ class VoskProvider(SpeechRecProvider):
         voskConfig = helper.get_provider_config(self)
 
         voskInputs = dict()
+        defaultDevice = pyaudio.PyAudio().get_default_input_device_info()
+        defaultDevice = f"{defaultDevice['name']} - {defaultDevice['index']}"
         inputDeviceInput = {
             "widget_type": "list",
             "options": helper.get_list_of_portaudio_devices("input"),
-            "label": "Choose your input device"
+            "label": "Audio input device",
+            "default_value": defaultDevice
         }
 
         availableVoskDirs = self.list_downloaded_models()

@@ -4,6 +4,7 @@ import os
 import queue
 import threading
 
+import pyaudio
 import speech_recognition as sr
 import torch.cuda
 import whisper.tokenizer
@@ -20,10 +21,13 @@ class WhisperProvider(SpeechRecProvider):
         configData = helper.get_provider_config(self)
 
         sharedInput = dict()
+        defaultDevice = pyaudio.PyAudio().get_default_input_device_info()
+        defaultDevice = f"{defaultDevice['name']} - {defaultDevice['index']}"
         inputDeviceInput = {
             "widget_type": "list",
             "options": helper.get_list_of_portaudio_devices("input"),
-            "label": "Choose your input device"
+            "label": "Audio input device",
+            "default_value": defaultDevice
         }
         runOptions = ["Run the model locally", "Use the paid API"]
 

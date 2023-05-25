@@ -307,6 +307,11 @@ def get_list_of_portaudio_devices(deviceType:str, alsaOnly=False) -> list[str]:
         hostAPIinfo = pyABackend.get_default_host_api_info()
 
     deviceNames = list()
+    activeDevices = None
+    if platform.system() == "Windows":
+        activeDevices = get_list_of_active_coreaudio_devices(deviceType)
+
+
 
     for i in range(hostAPIinfo["deviceCount"]):
         device = pyABackend.get_device_info_by_host_api_device_index(hostAPIinfo["index"], i)
@@ -315,9 +320,54 @@ def get_list_of_portaudio_devices(deviceType:str, alsaOnly=False) -> list[str]:
                 if "(hw:" in device["name"]:
                     deviceNames.append(device["name"] + " - " + str(device["index"]))
             else:
-                deviceNames.append(device["name"] + " - " + str(device["index"]))
+                if activeDevices is not None:
+                    for activeDevice in activeDevices:
+                        if device["name"] in activeDevice.FriendlyName:
+                            deviceNames.append(device["name"] + " - " + str(device["index"]))
+                            break
+                    if f"{device['name']} - {device['index']}" not in deviceNames:
+                        print(f"Device {device['name']} was skipped due to being marked inactive by CoreAudio.")
+                else:
+                    deviceNames.append(device["name"] + " - " + str(device["index"]))
 
     return deviceNames
+
+def get_list_of_active_coreaudio_devices(deviceType:str) -> list:
+    if platform.system() != "Windows":
+        raise NotImplementedError("This is only valid for windows.")
+
+    import comtypes
+    from pycaw.pycaw import AudioUtilities, IMMDeviceEnumerator, EDataFlow, DEVICE_STATE
+    from pycaw.constants import CLSID_MMDeviceEnumerator
+
+    if deviceType != "output" and deviceType != "input":
+        raise ValueError("Invalid audio device type.")
+
+    if deviceType == "output":
+        EDataFlowValue = EDataFlow.eRender.value
+    else:
+        EDataFlowValue = EDataFlow.eCapture.value
+    # Code to enumerate devices adapted from https://github.com/AndreMiras/pycaw/issues/50#issuecomment-981069603
+
+    devices = list()
+    deviceEnumerator = comtypes.CoCreateInstance(
+        CLSID_MMDeviceEnumerator,
+        IMMDeviceEnumerator,
+        comtypes.CLSCTX_INPROC_SERVER)
+    if deviceEnumerator is None:
+        raise ValueError("Couldn't find any devices.")
+    collection = deviceEnumerator.EnumAudioEndpoints(EDataFlowValue, DEVICE_STATE.ACTIVE.value)
+    if collection is None:
+        raise ValueError("Couldn't find any devices.")
+
+    count = collection.GetCount()
+    for i in range(count):
+        dev = collection.Item(i)
+        if dev is not None:
+            if not ": None" in str(AudioUtilities.CreateDevice(dev)):
+                devices.append(AudioUtilities.CreateDevice(dev))
+
+    return devices
 
 def get_portaudio_device_info_from_name(deviceName:str):
     pyABackend = pyaudio.PyAudio()

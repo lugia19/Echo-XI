@@ -37,13 +37,14 @@ class AzureProvider(SpeechRecProvider):
             azureConfigInputs["azure_speech_key"] = speechKeyInput
             azureConfigInputs["service_region"] = serviceRegionInput
 
-
+            defaultDevice = AudioUtilities.CreateDevice(AudioUtilities.GetMicrophone())
             try:
                 deviceNames = self.list_input_devices()
                 inputDeviceInput = {
                     "widget_type": "list",
                     "label": "Audio Input Device",
-                    "options": deviceNames
+                    "options": deviceNames,
+                    "default_value": defaultDevice.FriendlyName + " - ID: "+defaultDevice.id
                 }
 
                 azureConfigInputs["input_device"] = inputDeviceInput
@@ -142,29 +143,10 @@ class AzureProvider(SpeechRecProvider):
     def list_input_devices() -> list[str]:
         if platform.system() == "Windows":
             #Code to enumerate input devices adapted from https://github.com/AndreMiras/pycaw/issues/50#issuecomment-981069603
-            devices = list()
-            deviceEnumerator = comtypes.CoCreateInstance(
-                CLSID_MMDeviceEnumerator,
-                IMMDeviceEnumerator,
-                comtypes.CLSCTX_INPROC_SERVER)
-            if deviceEnumerator is None:
-                raise ValueError("Couldn't find any devices.")
-
-            collection = deviceEnumerator.EnumAudioEndpoints(EDataFlow.eCapture.value, DEVICE_STATE.ACTIVE.value)
-            if collection is None:
-                raise ValueError("Couldn't find any devices.")
-
-            count = collection.GetCount()
-            for i in range(count):
-                dev = collection.Item(i)
-                if dev is not None:
-                    if not ": None" in str(AudioUtilities.CreateDevice(dev)):
-                        devices.append(AudioUtilities.CreateDevice(dev))
-
+            devices = helper.get_list_of_active_coreaudio_devices("input")
             deviceNames = list()
             for device in devices:
                 deviceNames.append(device.FriendlyName + " - ID: "+device.id)
-
             return deviceNames
         elif platform.system() == "Linux":
             #Luckily portaudio includes the ALSA device IDs as part of the device name.
