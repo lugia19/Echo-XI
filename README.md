@@ -2,6 +2,8 @@
 
 ## Info
 
+I published a tour of all the various features available on youtube, [click here](https://youtu.be/Y7G1ZUycPrw) to view it.
+
 The main goal of the project is to offer speech to text to speech.
 
 **It now has a GUI, and it stores all the settings you input. Sensitive details such as API Keys are stored in the system keyring.**
