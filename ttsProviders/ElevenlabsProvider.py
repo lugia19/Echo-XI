@@ -83,7 +83,7 @@ class ElevenlabsProvider(TTSProvider):
         self.ttsVoice = user.get_voice_by_ID(voiceID)
         self.ttsVoice.edit_settings(stability=userData["stability"]/100, similarity_boost=userData["clarity"]/100)
         self.latencyLevel = int(userData["latency_optimization_level"][:1])
-
+        self.useMultilingual = helper.get_translation_config()["language"] != "en"
         threading.Thread(target=self.waitForPlaybackReady).start()
 
 
@@ -102,21 +102,12 @@ class ElevenlabsProvider(TTSProvider):
             print("Finished playing audio:" + prompt)
             self.readyForPlaybackEvent.set()
 
-        streamEnabled = True
-        if streamEnabled:
-            self.ttsVoice.generate_and_stream_audio(prompt=prompt, portaudioDeviceID=outputDeviceIndex,
-                                                    streamInBackground=True,
-                                                    onPlaybackStart=startcallbackfunc,
-                                                    onPlaybackEnd=endcallbackfunc)
-        else:
-            kwargs = {
-                "prompt": prompt,
-                "portaudioDeviceID": outputDeviceIndex,
-                "playInBackground": True,
-                "onPlaybackStart": startcallbackfunc,
-                "onPlaybackEnd": endcallbackfunc
-            }
-            threading.Thread(target=self.ttsVoice.generate_and_play_audio,kwargs=kwargs).start()
+        self.ttsVoice.generate_stream_audio(prompt=prompt, portaudioDeviceID=outputDeviceIndex,
+                                                streamInBackground=True,
+                                                onPlaybackStart=startcallbackfunc,
+                                                onPlaybackEnd=endcallbackfunc,
+                                                latencyOptimizationLevel=self.latencyLevel,
+                                                model_id=("eleven_multilingual_v1" if self.useMultilingual else "eleven_monolingual_v1"))
 
 
 

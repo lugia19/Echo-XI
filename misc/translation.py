@@ -6,12 +6,22 @@ import googletrans
 import deepl
 googleTranslator:googletrans.Translator
 deeplTranslator:Optional[deepl.Translator] = None
+targetLanguage = "en"
 def translation_setup():
     translationConfigInputs = dict()
-    deeplEnabledInput = {
-        "widget_type": "checkbox",
-        "label": "Enable DeepL translation",
-        "description": "Uses DeepL to translate your speech (if it's in a support language) into English. Otherwise it uses google translate."
+
+    translationEngineInput = {
+        "widget_type":"list",
+        "options":["Google Translate","DeepL"],
+        "label":"Translation engine"
+    }
+
+    translationLanguageInput = {
+        "widget_type": "list",
+        "label": "TTS output language",
+        "options":["en","de","pl","es","it","fr","pt","hi"],
+        "descriptions":["All recognized text from your speech will be translated\n"
+                        "into this language before being converted into the TTS output."]
     }
 
     deeplAPIKeyInput = {
@@ -20,15 +30,18 @@ def translation_setup():
         "hidden": True
     }
 
-    deeplConfig = helper.get_deepl_config()
+    tlConfig = helper.get_translation_config()
 
     translationConfigInputs["deepl_api_key"] = deeplAPIKeyInput
-    translationConfigInputs["enabled"] = deeplEnabledInput
+    translationConfigInputs["engine"] = translationEngineInput
+    translationConfigInputs["language"] = translationLanguageInput
 
     global deeplTranslator, googleTranslator
     while True:
-        result = helper.ask_fetch_from_and_update_config(translationConfigInputs, deeplConfig,"Translation config")
-        if result["enabled"]:
+        result = helper.ask_fetch_from_and_update_config(translationConfigInputs, tlConfig,"Translation config")
+        global targetLanguage
+        targetLanguage = result["language"]
+        if result["engine"] == "DeepL":
             deeplTranslator = deepl.Translator(result["deepl_api_key"]).set_app_info("speech_to_speech_by_lugia","2.0.0")
             try:
                 deeplTranslator.get_usage()
@@ -52,8 +65,13 @@ def translate_if_needed(text:str, language:str) -> str:
 
     language = language.lower()  # Ensure it's in lowercase.
 
-    if language == "en" or language == "en-us" or language == "en-gb":
-        return text
+    #Check if it's already in the target language
+    if "-" in language:
+        if language[:language.index("-")] == targetLanguage:
+            return text
+    else:
+        if language == targetLanguage:
+            return text
 
     if deeplTranslator is not None:
         supportedLanguages = deeplTranslator.get_source_languages()

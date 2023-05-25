@@ -47,8 +47,9 @@ defaultConfig: dict[str, str | int| list|float] = {
             "enabled": True,
             "language": ""
         },
-        "deepl_settings": {
-            "api_key":""
+        "translation_settings": {
+            "engine":"DeepL",
+            "language":"en"
         },
         "text_to_speech_config": {
             "ElevenlabsProvider": {
@@ -66,13 +67,11 @@ defaultConfig: dict[str, str | int| list|float] = {
                 "model_path": ""
             },
             "WhisperProvider": {
-                "api_key":"",
                 "pause_time": 0.8,
                 "energy_threshold": 250,
                 "dynamic_energy_threshold": True
             },
             "AzureProvider": {
-                "speech_key" : "",
                 "service_region": "",
                 "language_list": []
             }
@@ -278,8 +277,8 @@ def get_recasepunc_config():
 def get_misc_config():
     return _configData["misc_settings"]
 
-def get_deepl_config():
-    return _configData["deepl_settings"]
+def get_translation_config():
+    return _configData["translation_settings"]
 def get_list_of_portaudio_devices(deviceType:str, alsaOnly=False) -> list[str]:
     """
     Returns a list containing all the names of portaudio devices of the specified type.
@@ -447,7 +446,11 @@ def _ask_ui(config, title="Settings"):
         if "descriptions" in config[combobox_key]:
             config[combobox_key]["description_text"].config(state=tk.NORMAL)
             config[combobox_key]["description_text"].delete(1.0, tk.END)
-            config[combobox_key]["description_text"].insert(tk.END, config[combobox_key]["descriptions"][selected_index])
+            if len(config[combobox_key]["descriptions"]) == 1:
+                #If there's only one description, use the same one for all options.
+                config[combobox_key]["description_text"].insert(tk.END, config[combobox_key]["descriptions"][0])
+            else:
+                config[combobox_key]["description_text"].insert(tk.END, config[combobox_key]["descriptions"][selected_index])
             config[combobox_key]["description_text"].config(state=tk.DISABLED)
 
     def on_checkbox_clicked(checkbox_key):
