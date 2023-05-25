@@ -1,16 +1,16 @@
 import datetime
+import io
 import os
 import queue
 import threading
 
 import speech_recognition as sr
-import tempfile
 import whisper.tokenizer
 import openai
 import helper
 from speechRecognition.__SpeechRecProviderAbstract import SpeechRecProvider
 import whisper
-import googletrans
+import faster_whisper
 class WhisperProvider(SpeechRecProvider):
     #Inspired by this repo https://github.com/mallorbc/whisper_mic/blob/main/mic.py
     def __init__(self):
@@ -133,7 +133,9 @@ class WhisperProvider(SpeechRecProvider):
             modelBaseName = chosenModel[:chosenModel.find(" ")].lower()
             if not self.useMultiLingual and "Large" not in chosenModel:
                 modelBaseName += ".en"
-            self.model = whisper.load_model(modelBaseName)
+            self.model = faster_whisper.WhisperModel(modelBaseName, device="cuda", compute_type="float16")
+
+            #self.model = whisper.load_model(modelBaseName)
         else:
             apiKeyInput = {
                 "openai_api_key":{
@@ -183,10 +185,8 @@ class WhisperProvider(SpeechRecProvider):
                 audio = self.recognizer.listen(source)
                 if self.recognitionStartedTime is None:
                     self.recognitionStartedTime = datetime.datetime.now()
-                temp = tempfile.NamedTemporaryFile(suffix=".wav", mode="wb+",delete=False)
-                temp.write(audio.get_wav_data())
                 self.audioQueue.put_nowait({
-                    "audio_data": temp,
+                    "audio_data": audio,
                     "start_time": self.recognitionStartedTime
                 })
                 self.recognitionStartedTime = None
@@ -196,37 +196,29 @@ class WhisperProvider(SpeechRecProvider):
             if self.interruptEvent.is_set():
                 break
             audioQueueElement = self.audioQueue.get()
-            audioTempFile = audioQueueElement["audio_data"]
-            audioFilePath = audioTempFile.name
-            audioTempFile.close()
-
+            audio = audioQueueElement["audio_data"]
             audioLanguage = None
 
             if self.runLocal:
                 if self.useMultiLingual:
                     if self.languageOverride != "":
                         audioLanguage = self.languageOverride
-                        result = self.model.transcribe(audioFilePath, language=self.languageOverride)
-                        recognizedText = result["text"].strip()
+                        segments, info = self.model.transcribe(io.BytesIO(audio.get_wav_data()), language=self.languageOverride, beam_size=5)
                     else:
-                        audio = whisper.load_audio(audioFilePath)
-                        audio = whisper.pad_or_trim(audio)
-                        mel = whisper.log_mel_spectrogram(audio).to(self.model.device)
-                        _, probs = self.model.detect_language(mel)
-                        audioLanguage = max(probs, key=probs.get)
-                        options = whisper.DecodingOptions(language=audioLanguage)
-                        result = whisper.decode(self.model, mel, options)
-                        recognizedText = result.text.strip()
+                        segments, info = self.model.transcribe(io.BytesIO(audio.get_wav_data()), beam_size=5)
+                        audioLanguage = info.language
                 else:
-                    result = self.model.transcribe(audioFilePath, language="en")
+                    segments, info = self.model.transcribe(io.BytesIO(audio.get_wav_data()), language="en")
                     audioLanguage = "en"
-                    recognizedText = result["text"].strip()
+
+                recognizedText = ""
+                for segment in segments:
+                    recognizedText += " " + segment.text
+                recognizedText = recognizedText.strip()
 
             else:
                 #The API doesn't return the detected language. Fuck.
-                fp = open(audioFilePath,"rb")
-                recognizedText = openai.Audio.transcribe("whisper-1", fp).text
-                fp.close()
+                recognizedText = openai.Audio.transcribe("whisper-1", io.BytesIO(audio.get_wav_data())).text
 
             print("\nRecognized text: " + recognizedText)
             recognizedTime = datetime.datetime.now()
@@ -237,4 +229,3 @@ class WhisperProvider(SpeechRecProvider):
                     "start_time": audioQueueElement["start_time"],
                     "recognized_time": recognizedTime
                 })
-            os.remove(audioFilePath)
