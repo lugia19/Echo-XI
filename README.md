@@ -1,4 +1,4 @@
-# Speech to text to speech using various services
+# Speech to text to speech
 
 ## Info
 
@@ -11,15 +11,16 @@ In case you want to use the cli, simply call the script from the comamnd line wi
 It offers three separate speech recognition services:
 - Vosk, with [recasepunc](https://github.com/benob/recasepunc) to add punctuation
 - Azure speech recognition
-- Whisper, both running locally and through openAI's API
+- Whisper, both running locally (**now using faster-whisper for faster recognition and lower VRAM usage**) and through openAI's API
 
-In addition, it automatically translates the output into English, if the user is speaking a different language.
+In addition, it automatically translates the output into a language of the user's choosing, if the user is speaking a different language.
+
 Each speech recognition provider has different language support, so be sure to read the details.
 
 Translation is provided via either DeepL for supported languages, or Google Translate.
 
 The recognized and translated text is then sent to a TTS provider, of which two are supported:
-- Elevenlabs, through the `elevenlabslib` module, a high quality but paid online TTS service
+- Elevenlabs, through the `elevenlabslib` module, a high quality but paid online TTS service that supports multiple languages.
 - pyttsx3, a low quality TTS that runs locally.
 
 The project also allows you to synchronize the detected text with an OBS text source using [obsws-python](https://pypi.org/project/obsws-python/).
