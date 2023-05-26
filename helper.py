@@ -323,7 +323,7 @@ def get_list_of_portaudio_devices(deviceType:str, alsaOnly=False) -> list[str]:
                 if activeDevices is not None:
                     for activeDevice in activeDevices:
                         if device["name"] in activeDevice.FriendlyName:
-                            deviceNames.append(device["name"] + " - " + str(device["index"]))
+                            deviceNames.append(activeDevice.FriendlyName + " - " + str(device["index"]))
                             break
                     if f"{device['name']} - {device['index']}" not in deviceNames:
                         print(f"Device {device['name']} was skipped due to being marked inactive by CoreAudio.")
