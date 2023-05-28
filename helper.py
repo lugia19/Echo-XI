@@ -602,7 +602,12 @@ def _ask_cli(innerConfig,title="Settings"):
             options = value["options"]
             if "descriptions" in value and len(value["descriptions"]) > 1:
                 options = [f"{option} - {desc}" for option, desc in zip(value["options"], value["descriptions"])]
-            innerResult[key] = choose_from_list_of_strings(value["label"], options)
+                choiceDescAndName = choose_from_list_of_strings(value["label"], options)
+                innerResult[key] = choiceDescAndName[:choiceDescAndName.index(" - ")]
+            else:
+                if "descriptions" in value:
+                    print(value["descriptions"][0])
+                innerResult[key] = choose_from_list_of_strings(value["label"], options)
 
         elif value["widget_type"] == "checkbox":
             innerResult[key] = choose_yes_no(value["label"])
