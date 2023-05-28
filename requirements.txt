@@ -32,6 +32,7 @@ PyAudio
 #Requirements for the whisper recognition:
 #For the local version:
 faster-whisper
+openai-whisper
 SpeechRecognition
 #For the API
 openai
