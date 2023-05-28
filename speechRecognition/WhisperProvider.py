@@ -1,6 +1,7 @@
 import datetime
 import io
 import os
+import platform
 import queue
 import threading
 
@@ -141,7 +142,10 @@ class WhisperProvider(SpeechRecProvider):
 
             if not (torch.cuda.is_available()):
                 helper.show_text("You do not currently have a CUDA capable device. If you have an NVIDIA GPU, please install a recent CUDA version.")
-            self.model = faster_whisper.WhisperModel(modelBaseName, device="auto", compute_type="float16")
+            if platform.system() == "Linux" or platform.system() == "Windows":
+                self.model = faster_whisper.WhisperModel(modelBaseName, device="auto", compute_type="float16")
+            else:
+                self.model = faster_whisper.WhisperModel(modelBaseName, device="auto")
 
             #self.model = whisper.load_model(modelBaseName)
         else:
@@ -225,8 +229,12 @@ class WhisperProvider(SpeechRecProvider):
                 recognizedText = recognizedText.strip()
 
             else:
-                #The API doesn't return the detected language. Fuck.
-                recognizedText = openai.Audio.transcribe("whisper-1", io.BytesIO(audio.get_wav_data())).text
+                #The API doesn't return the detected language, and only allows upload through a filename.
+                with open("temp.wav","wb+") as fp:
+                    fp.write(audio.get_wav_data())
+                    fp.seek(0)
+                    recognizedText = openai.Audio.transcribe("whisper-1", fp).text
+                os.remove("temp.wav")
 
             print("\nRecognized text: " + recognizedText)
             recognizedTime = datetime.datetime.now()
