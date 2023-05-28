@@ -36,6 +36,11 @@ def subtitle_setup():
     obsInputs["obs_password"] = passwordInput
     obsInputs["enabled"] = enabledInput
 
+    if not helper.useGUI:
+        if helper.choose_yes_no("Would you like to skip the OBS setup?"):
+            return
+
+
     global wsClient
     while True:
         result = helper.ask_fetch_from_and_update_config(obsInputs, obsConfig, "OBS subtitle integration settings")

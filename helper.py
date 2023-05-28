@@ -433,11 +433,14 @@ def ask_fetch_from_and_update_config(inputDict:dict, configData:dict, title:str)
     return userInputs
 
 def show_text(message):
-    app = tk.Tk()
-    app.attributes('-alpha', 0)
-    setup_style(app, backgroundColor, buttonBackground, foregroundColor)
-    show_custom_messagebox(app, "Info", message)
-    app.destroy()
+    if useGUI:
+        app = tk.Tk()
+        app.attributes('-alpha', 0)
+        setup_style(app, backgroundColor, buttonBackground, foregroundColor)
+        show_custom_messagebox(app, "Info", message)
+        app.destroy()
+    else:
+        input(message)
 def show_custom_messagebox(app, title, message):
     messagebox_window = tk.Toplevel(app)
     messagebox_window.title(title)

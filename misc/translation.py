@@ -30,6 +30,10 @@ def translation_setup():
         "hidden": True
     }
 
+    if not helper.useGUI:
+        if helper.choose_yes_no("Would you like to skip the translation setup?"):
+            return
+
     tlConfig = helper.get_translation_config()
 
     translationConfigInputs["deepl_api_key"] = deeplAPIKeyInput
