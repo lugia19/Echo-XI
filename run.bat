@@ -16,5 +16,6 @@ if not exist "venv" (
 )
 
 pip install --upgrade elevenlabslib
+pip install faster_whisper
 
 python speechToSpeech.py
