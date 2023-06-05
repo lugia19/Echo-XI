@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import platform
-from typing import Mapping
 import tkinter as tk
 from tqdm import tqdm
 from tkinter import ttk

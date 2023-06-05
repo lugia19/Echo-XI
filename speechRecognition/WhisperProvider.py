@@ -229,11 +229,12 @@ class WhisperProvider(SpeechRecProvider):
                 recognizedText = recognizedText.strip()
 
             else:
-                #The API doesn't return the detected language, and only allows upload through a filename.
                 with open("temp.wav","wb+") as fp:
                     fp.write(audio.get_wav_data())
                     fp.seek(0)
-                    recognizedText = openai.Audio.transcribe("whisper-1", fp).text
+                    recognizedText = openai.Audio.transcribe("whisper-1", fp, response_format="verbose_json")
+                    audioLanguage = recognizedText.language
+                    recognizedText = recognizedText.text
                 os.remove("temp.wav")
 
             print("\nRecognized text: " + recognizedText)

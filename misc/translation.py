@@ -45,7 +45,7 @@ def translation_setup():
         result = helper.ask_fetch_from_and_update_config(translationConfigInputs, tlConfig,"Translation config")
         global targetLanguage
         targetLanguage = result["language"]
-        if result["engine"] == "DeepL":
+        if result["engine"] == "DeepL" and result["deepl_api_key"] != "":
             deeplTranslator = deepl.Translator(result["deepl_api_key"]).set_app_info("speech_to_speech_by_lugia","2.0.0")
             try:
                 deeplTranslator.get_usage()
