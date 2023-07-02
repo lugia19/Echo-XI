@@ -2,7 +2,9 @@
 git+https://github.com/benob/mosestokenizer.git
 numpy
 regex
-torch
+torch -f https://download.pytorch.org/whl/cu118
+torchvision  -f https://download.pytorch.org/whl/cu118
+torchaudio -f https://download.pytorch.org/whl/cu118
 tqdm
 transformers
 
