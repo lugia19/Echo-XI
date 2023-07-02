@@ -37,13 +37,13 @@ Additionally, if you're on linux, you'll need to make sure portaudio is installe
 
 On windows:
 
-1) Clone the repo: `git clone https://github.com/lugia19/speechToSpeechElevenLabs.git`
+1) Clone the repo: `git clone https://github.com/lugia19/Echo-XI.git`
 
 2) Run run.bat - it will handle all the following steps for you.
 
 Everywhere else:
 
-1) Clone the repo: `git clone https://github.com/lugia19/speechToSpeechElevenLabs.git`
+1) Clone the repo: `git clone https://github.com/lugia19/Echo-XI.git`
 
 2) Create a venv: `python -m venv venv`
 
