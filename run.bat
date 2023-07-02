@@ -11,6 +11,7 @@ if not exist "venv" (
 	pip install wheel
 	pip install numpy
 	pip install -r requirements.txt
+	pip install -r requirements-torch.txt
 ) else (
     call venv\scripts\activate
 )
